@@ -3,77 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TEM-8 词汇同步版</title>
+    <title>TEM-8 词汇大师 - 智能同步版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', system-ui, sans-serif; background-color: #f8fafc; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 50; backdrop-filter: blur(4px); }
         .modal.active { display: flex; }
+        .option-btn { transition: all 0.2s; border: 2px solid #f1f5f9; }
         .correct { background-color: #ecfdf5 !important; border-color: #10b981 !important; color: #064e3b !important; }
         .wrong { background-color: #fef2f2 !important; border-color: #ef4444 !important; color: #7f1d1d !important; }
+        /* 优化后的字体粗细控制 */
+        .word-font { font-weight: 700; letter-spacing: -0.02em; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen">
 
     <div id="app" class="max-w-5xl mx-auto flex flex-col md:flex-row min-h-screen shadow-2xl bg-white overflow-hidden">
         
-        <div class="w-full md:w-80 bg-indigo-700 p-6 text-white flex flex-col justify-between">
+        <div class="w-full md:w-80 bg-indigo-700 p-6 text-white flex flex-col justify-between shrink-0">
             <div class="space-y-6">
                 <div class="flex justify-between items-center">
-                    <h1 class="text-2xl font-black">TEM-8 MASTER</h1>
-                    <button onclick="toggleModal('chapter-modal')" class="bg-white/20 p-2 rounded-lg hover:bg-white/30">切换章节</button>
+                    <h1 class="text-xl font-bold tracking-tight">TEM-8 MASTER</h1>
+                    <button onclick="toggleModal('chapter-modal', true)" class="bg-white/20 px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-white/30 transition">切换章节</button>
                 </div>
 
                 <div class="grid grid-cols-2 md:grid-cols-1 gap-4">
-                    <div onclick="showList('mastered')" class="bg-white/10 p-4 rounded-2xl cursor-pointer hover:bg-white/20 transition">
-                        <p class="text-[10px] opacity-60 font-bold uppercase">已掌握 (点击查看)</p>
-                        <p id="stat-done" class="text-3xl font-black">0</p>
+                    <div onclick="showList('mastered')" class="bg-white/10 p-4 rounded-2xl cursor-pointer hover:bg-white/20 transition group">
+                        <p class="text-[10px] opacity-60 font-bold uppercase tracking-wider mb-1">已掌握</p>
+                        <p id="stat-done" class="text-3xl font-bold">0</p>
+                        <p class="text-[10px] mt-2 text-indigo-200 underline opacity-0 group-hover:opacity-100 transition">点击查看列表</p>
                     </div>
-                    <div onclick="showList('remaining')" class="bg-white/10 p-4 rounded-2xl cursor-pointer hover:bg-white/20 transition">
-                        <p class="text-[10px] opacity-60 font-bold uppercase">本章剩余 (点击查看)</p>
-                        <p id="stat-remain" class="text-3xl font-black">0</p>
+                    <div onclick="showList('remaining')" class="bg-white/10 p-4 rounded-2xl cursor-pointer hover:bg-white/20 transition group">
+                        <p class="text-[10px] opacity-60 font-bold uppercase tracking-wider mb-1">本章剩余</p>
+                        <p id="stat-remain" class="text-3xl font-bold">0</p>
+                        <p class="text-[10px] mt-2 text-indigo-200 underline opacity-0 group-hover:opacity-100 transition">点击查看列表</p>
                     </div>
                 </div>
                 
-                <p id="cur-chapter-name" class="text-indigo-200 text-sm font-bold italic">当前章节：加载中...</p>
+                <div class="pt-2">
+                    <p class="text-[10px] opacity-50 uppercase font-bold mb-1">Current Chapter</p>
+                    <p id="cur-chapter-name" class="text-indigo-100 font-semibold italic">加载中...</p>
+                </div>
             </div>
 
             <div class="mt-8 pt-6 border-t border-white/10 space-y-3">
-                <button onclick="exportProgress()" class="w-full text-[10px] font-bold py-2 bg-emerald-500 rounded-lg">导出进度 (跨设备用)</button>
-                <button onclick="importProgress()" class="w-full text-[10px] font-bold py-2 bg-slate-500 rounded-lg">导入进度</button>
+                <button onclick="exportProgress()" class="w-full text-xs font-bold py-3 bg-emerald-500 hover:bg-emerald-600 rounded-xl transition shadow-lg shadow-emerald-900/20">复制进度到剪切板</button>
+                <button onclick="importProgress()" class="w-full text-xs font-bold py-3 bg-slate-600 hover:bg-slate-700 rounded-xl transition">从剪切板读取进度</button>
+                <p class="text-[9px] opacity-40 text-center">跨设备背词前请先点击同步</p>
             </div>
         </div>
 
-        <div class="flex-1 p-6 md:p-16 flex flex-col justify-center">
+        <div class="flex-1 p-6 md:p-12 flex flex-col justify-center bg-white">
             <div id="quiz-area" class="max-w-2xl mx-auto w-full">
-                <div class="mb-10"><h2 id="q-word" class="text-6xl md:text-8xl font-black text-slate-900 tracking-tight">---</h2></div>
+                <div class="mb-10">
+                    <h2 id="q-word" class="text-5xl md:text-7xl word-font text-slate-800">---</h2>
+                </div>
+                
                 <div id="options-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-                <div id="feedback" class="hidden mt-8 space-y-4">
-                    <div class="bg-indigo-50 p-6 rounded-[2rem] border-l-8 border-indigo-500">
-                        <p id="fb-cn" class="text-2xl font-bold text-slate-800"></p>
+                
+                <div id="feedback" class="hidden mt-8 space-y-4 animate-in fade-in slide-in-from-bottom-4">
+                    <div class="bg-indigo-50 p-6 rounded-3xl border-l-4 border-indigo-500">
+                        <p id="fb-cn" class="text-xl font-semibold text-slate-800 leading-relaxed"></p>
                     </div>
-                    <button onclick="renderNext()" class="w-full bg-slate-900 text-white py-6 rounded-2xl font-black text-xl">下一题 →</button>
+                    <button onclick="renderNext()" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold text-lg hover:bg-black transition shadow-xl">下一题 →</button>
                 </div>
             </div>
         </div>
     </div>
 
     <div id="chapter-modal" class="modal items-center justify-center p-4">
-        <div class="bg-white rounded-3xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col">
-            <div class="p-6 border-b font-bold flex justify-between bg-slate-50">
-                <span>选择章节</span>
-                <button onclick="toggleModal('chapter-modal')">关闭</button>
+        <div class="bg-white rounded-3xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col shadow-2xl">
+            <div class="p-5 border-b font-bold flex justify-between items-center bg-slate-50">
+                <span>选择学习章节</span>
+                <button onclick="toggleModal('chapter-modal', false)" class="text-slate-400 hover:text-slate-600">✕</button>
             </div>
             <div id="chapter-list" class="overflow-y-auto p-4 space-y-2"></div>
         </div>
     </div>
 
     <div id="list-modal" class="modal items-center justify-center p-4">
-        <div class="bg-white rounded-3xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-            <div class="p-6 border-b font-bold flex justify-between bg-slate-50">
+        <div class="bg-white rounded-3xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col shadow-2xl">
+            <div class="p-5 border-b font-bold flex justify-between items-center bg-slate-50">
                 <span id="list-title">单词列表</span>
-                <button onclick="toggleModal('list-modal')">关闭</button>
+                <button onclick="toggleModal('list-modal', false)" class="text-slate-400 hover:text-slate-600">✕</button>
             </div>
-            <div id="word-list-content" class="overflow-y-auto p-6 space-y-3"></div>
+            <div id="word-list-content" class="overflow-y-auto p-5 space-y-2"></div>
         </div>
     </div>
 
@@ -89,21 +104,24 @@
                 const res = await fetch(JSON_URL);
                 ALL_DATA = await res.json();
                 buildChapters();
-                switchChapter(ALL_DATA[0].chapter);
-            } catch (e) { alert("词库加载失败"); }
+                // 自动恢复上次选择的章节，若无则选第一个
+                const lastChapter = localStorage.getItem('tem8_last_chapter') || ALL_DATA[0].chapter;
+                switchChapter(lastChapter);
+            } catch (e) { alert("词库加载失败，请检查网络"); }
         }
 
         function buildChapters() {
             const chapters = [...new Set(ALL_DATA.map(i => i.chapter))];
             const container = document.getElementById('chapter-list');
             container.innerHTML = chapters.map(c => `
-                <button onclick="switchChapter('${c}')" class="w-full text-left p-4 rounded-xl hover:bg-indigo-50 border border-slate-100 font-bold text-slate-700">${c}</button>
+                <button onclick="switchChapter('${c}')" class="w-full text-left p-4 rounded-xl hover:bg-indigo-50 border border-slate-100 font-bold text-slate-700 transition">${c}</button>
             `).join('');
         }
 
         function switchChapter(name) {
             CURRENT_VOCAB = ALL_DATA.filter(i => i.chapter === name);
-            document.getElementById('cur-chapter-name').innerText = "当前章节：" + name;
+            document.getElementById('cur-chapter-name').innerText = name;
+            localStorage.setItem('tem8_last_chapter', name);
             curIdx = 0;
             toggleModal('chapter-modal', false);
             updateStats();
@@ -118,7 +136,6 @@
         }
 
         function renderNext() {
-            // 找到下一个没掌握的词
             let found = false;
             for(let i=0; i<CURRENT_VOCAB.length; i++) {
                 let tempIdx = (curIdx + i) % CURRENT_VOCAB.length;
@@ -128,9 +145,9 @@
                     break;
                 }
             }
-
             if(!found) {
-                alert("本章节已全部掌握！请切换章节或重置。");
+                document.getElementById('q-word').innerText = "本章已完成 🎉";
+                document.getElementById('options-grid').innerHTML = '<button onclick="toggleModal(\'chapter-modal\', true)" class="w-full p-4 bg-indigo-600 text-white rounded-xl font-bold">去学习其它章节</button>';
                 return;
             }
 
@@ -143,14 +160,14 @@
 
             q.options.forEach((opt, idx) => {
                 const btn = document.createElement('button');
-                btn.className = "p-6 border-2 border-slate-100 rounded-2xl font-bold text-slate-700 hover:bg-indigo-50 text-left";
+                btn.className = "option-btn p-5 rounded-2xl font-semibold text-slate-700 hover:bg-slate-50 text-left leading-snug";
                 btn.innerText = opt;
                 btn.onclick = () => {
                     if(idx === q.answer) {
                         btn.classList.add('correct');
                         masteredIds.add(q.word);
                         updateStats();
-                        setTimeout(renderNext, 800); // 正确后自动跳下一题
+                        setTimeout(renderNext, 600);
                     } else {
                         btn.classList.add('wrong');
                         document.getElementById('fb-cn').innerText = q.meaning_cn;
@@ -163,44 +180,58 @@
         }
 
         function showList(type) {
-            const modal = document.getElementById('list-modal');
-            const title = document.getElementById('list-title');
-            const content = document.getElementById('word-list-content');
-            
             const list = type === 'mastered' 
                 ? CURRENT_VOCAB.filter(i => masteredIds.has(i.word))
                 : CURRENT_VOCAB.filter(i => !masteredIds.has(i.word));
 
-            title.innerText = type === 'mastered' ? "已掌握单词" : "进行中/剩余单词";
-            content.innerHTML = list.map(i => `
-                <div class="p-4 bg-slate-50 rounded-xl flex justify-between items-center">
-                    <div>
-                        <p class="font-bold text-lg">${i.word}</p>
-                        <p class="text-sm text-slate-500">${i.meaning_cn}</p>
+            document.getElementById('list-title').innerText = type === 'mastered' ? "已掌握记录" : "待学习单词";
+            document.getElementById('word-list-content').innerHTML = list.map(i => `
+                <div class="p-4 bg-slate-50 rounded-2xl flex justify-between items-center border border-slate-100">
+                    <div class="flex-1">
+                        <p class="font-bold text-slate-800 text-lg">${i.word}</p>
+                        <p class="text-sm text-slate-500 font-medium">${i.meaning_cn}</p>
                     </div>
                 </div>
-            `).join('') || "<p class='text-center text-slate-400'>暂无数据</p>";
+            `).join('') || "<div class='py-10 text-center text-slate-400 font-medium'>列表为空</div>";
             
-            modal.classList.add('active');
+            toggleModal('list-modal', true);
         }
 
-        function toggleModal(id, force) {
-            const m = document.getElementById(id);
-            if(force !== undefined) force ? m.classList.add('active') : m.classList.remove('active');
-            else m.classList.toggle('active');
+        function toggleModal(id, show) {
+            document.getElementById(id).classList.toggle('active', show);
         }
 
-        // 同步功能
-        function exportProgress() {
-            const data = localStorage.getItem('tem8_mastered_ids');
-            prompt("请复制以下加密进度代码并在另一台设备导入：", btoa(data));
+        // --- 核心剪切板同步逻辑 ---
+
+        async function exportProgress() {
+            try {
+                const data = localStorage.getItem('tem8_mastered_ids');
+                const code = btoa(unescape(encodeURIComponent(data)));
+                await navigator.clipboard.writeText(code);
+                alert("✅ 进度已成功复制到剪切板！\n请在另一台设备点击“导入”即可同步。");
+            } catch (err) {
+                // 回退方案：如果浏览器不支持自动写入，则弹出对话框
+                const data = localStorage.getItem('tem8_mastered_ids');
+                prompt("自动复制失败，请手动复制以下代码：", btoa(data));
+            }
         }
 
-        function importProgress() {
-            const code = prompt("请输入进度代码：");
-            if(code) {
-                localStorage.setItem('tem8_mastered_ids', atob(code));
-                location.reload();
+        async function importProgress() {
+            try {
+                const code = await navigator.clipboard.readText();
+                if (code) {
+                    const decoded = decodeURIComponent(escape(atob(code)));
+                    localStorage.setItem('tem8_mastered_ids', decoded);
+                    alert("✅ 导入成功！正在同步进度...");
+                    location.reload();
+                }
+            } catch (err) {
+                // 回退方案：如果浏览器阻止了自动读取，则弹出输入框
+                const code = prompt("无法自动读取剪切板，请在此粘贴进度代码：");
+                if (code) {
+                    localStorage.setItem('tem8_mastered_ids', atob(code));
+                    location.reload();
+                }
             }
         }
 
