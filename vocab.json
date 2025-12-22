@@ -1,0 +1,29 @@
+[
+  {
+    "word": "academy",
+    "chapter": "传道授业",
+    "options": ["专科学校;学会", "由于", "调整", "准许"],
+    "answer": 0,
+    "meaning_cn": "学院，专科学校；研究院；学会",
+    "meaning_en": "A place of study or training in a special field.",
+    "sentence": "At the academy, the students eat lunch at 12."
+  },
+  {
+    "word": "acquaint",
+    "chapter": "传道授业",
+    "options": ["遗弃", "使熟悉;认识", "获得", "放弃"],
+    "answer": 1,
+    "meaning_cn": "（使）认识，（使）了解",
+    "meaning_en": "Make someone aware of or familiar with.",
+    "sentence": "To help us get acquainted with the peculiarities of Istanbul."
+  },
+  {
+    "word": "compulsory",
+    "chapter": "校园生活",
+    "options": ["可选的", "复杂的", "强制的;义务的", "简洁的"],
+    "answer": 2,
+    "meaning_cn": "强迫的，强制的，义务的",
+    "meaning_en": "Required by law or a rule; obligatory.",
+    "sentence": "Compulsory schooling in China lasts nine years."
+  }
+]
