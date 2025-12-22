@@ -2,77 +2,92 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>专八词汇大师</title>
+    <title>TEM-8 专八词汇大师</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: system-ui, sans-serif; background-color: #f8fafc; }
-        .correct { background-color: #f0fdf4 !important; border-color: #22c55e !important; color: #15803d !important; font-weight: 700; }
+        .correct { background-color: #f0fdf4 !important; border-color: #22c55e !important; color: #15803d !important; }
         .wrong { background-color: #fef2f2 !important; border-color: #ef4444 !important; color: #991b1b !important; }
     </style>
 </head>
-<body class="min-h-screen py-10 px-4 flex justify-center">
-    <div id="app" class="w-full max-w-2xl bg-white rounded-[2rem] shadow-xl overflow-hidden">
-        <div class="bg-indigo-600 p-6 text-white text-center">
-            <h1 class="text-2xl font-bold">专八词汇同步</h1>
-            <p id="chapter-name" class="text-xs opacity-75 mt-1 tracking-widest">LOADING...</p>
+<body class="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+
+    <div id="app" class="w-full max-w-2xl bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-slate-100">
+        <div class="bg-indigo-600 p-8 text-white text-center">
+            <h1 class="text-2xl font-bold italic">Vocab Master</h1>
+            <p id="chapter-display" class="text-xs opacity-80 mt-1 uppercase tracking-widest font-bold">同步中...</p>
         </div>
-        
+
         <div class="p-8">
-            <div id="quiz-box">
-                <div class="flex items-center gap-4 mb-6">
-                    <h2 id="q-word" class="text-5xl font-bold text-slate-800">---</h2>
-                </div>
-                <div id="options" class="grid grid-cols-1 gap-4"></div>
-                
-                <div id="feedback" class="mt-8 p-6 bg-slate-50 rounded-2xl hidden border-2 border-indigo-100">
-                    <p class="text-xs font-bold text-indigo-400 mb-2 uppercase">中文释义</p>
-                    <p id="fb-cn" class="text-xl font-bold text-slate-800 mb-6"></p>
-                    <p class="text-xs font-bold text-indigo-400 mb-2 uppercase">English Definition</p>
-                    <p id="fb-en" class="text-xl italic text-slate-600 leading-relaxed"></p>
-                    <button onclick="next()" class="w-full mt-8 bg-indigo-600 text-white py-4 rounded-xl font-bold">下一个</button>
+            <div id="quiz-area">
+                <div class="mb-8"><h2 id="q-word" class="text-6xl font-black text-slate-800 tracking-tight">------</h2></div>
+                <div id="options-grid" class="grid grid-cols-1 gap-4 mb-8"></div>
+
+                <div id="feedback" class="hidden">
+                    <div class="bg-indigo-50/50 p-6 rounded-2xl border-2 border-indigo-100 mb-6">
+                        <div class="mb-4">
+                            <p class="text-[10px] font-black text-indigo-400 uppercase mb-1 tracking-widest">中文释义</p>
+                            <p id="fb-cn" class="text-2xl font-bold text-slate-800"></p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-black text-indigo-400 uppercase mb-1 tracking-widest">English Definition</p>
+                            <p id="fb-en" class="text-2xl font-medium text-slate-600 italic leading-relaxed"></p>
+                        </div>
+                    </div>
+                    <button onclick="handleNext()" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold text-xl hover:bg-black transition-all active:scale-95 shadow-lg">下一题</button>
                 </div>
             </div>
+            <div id="error-msg" class="hidden text-center text-red-500 font-bold py-10">词库加载失败，请检查 vocab.json</div>
         </div>
     </div>
 
     <script>
-        let VOCAB = [];
-        let index = 0;
-        // 【重要】替换这里的链接
+        // 自动适配你的仓库路径
         const JSON_URL = 'https://raw.githubusercontent.com/namegoodone/tem8-vocab/main/vocab.json';
+        let VOCAB_DATA = [];
+        let currentIndex = 0;
 
         async function init() {
             try {
-                const res = await fetch(JSON_URL);
-                VOCAB = await res.json();
-                render();
-            } catch(e) { alert("词库加载失败，请检查 Raw 链接是否正确"); }
+                const response = await fetch(JSON_URL);
+                VOCAB_DATA = await response.json();
+                renderQuestion();
+            } catch (error) {
+                document.getElementById('error-msg').classList.remove('hidden');
+            }
         }
 
-        function render() {
-            const q = VOCAB[index % VOCAB.length];
+        function renderQuestion() {
+            const q = VOCAB_DATA[currentIndex % VOCAB_DATA.length];
+            document.getElementById('chapter-display').innerText = q.chapter;
             document.getElementById('q-word').innerText = q.word;
-            document.getElementById('chapter-name').innerText = q.chapter;
             document.getElementById('feedback').classList.add('hidden');
-            const box = document.getElementById('options');
-            box.innerHTML = '';
-            q.options.forEach((opt, i) => {
+            
+            const grid = document.getElementById('options-grid');
+            grid.innerHTML = '';
+            grid.classList.remove('hidden');
+
+            q.options.forEach((opt, idx) => {
                 const btn = document.createElement('button');
-                btn.className = "w-full text-left p-4 border-2 border-slate-100 rounded-xl font-bold text-slate-600 hover:bg-indigo-50 transition";
+                btn.className = "w-full text-left p-5 border-2 border-slate-100 rounded-2xl font-bold text-slate-600 hover:bg-indigo-50 text-xl transition-all";
                 btn.innerText = opt;
                 btn.onclick = () => {
-                    document.querySelectorAll('button').forEach(b => b.disabled = true);
-                    if(i === q.answer) btn.classList.add('correct');
+                    document.querySelectorAll('#options-grid button').forEach(b => b.disabled = true);
+                    if (idx === q.answer) btn.classList.add('correct');
                     else btn.classList.add('wrong');
                     document.getElementById('fb-cn').innerText = q.meaning_cn;
                     document.getElementById('fb-en').innerText = q.meaning_en;
                     document.getElementById('feedback').classList.remove('hidden');
                 };
-                box.appendChild(btn);
+                grid.appendChild(btn);
             });
         }
 
-        function next() { index++; render(); }
+        function handleNext() {
+            currentIndex++;
+            renderQuestion();
+            window.scrollTo(0, 0);
+        }
+
         init();
     </script>
 </body>
