@@ -3,133 +3,149 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TEM-8 专八词汇大师</title>
+    <title>TEM-8 Master | 专八词汇大师</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; background-color: #f8fafc; }
+        body { font-family: 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif; background-color: #f1f5f9; }
         .option-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
-        .correct { background-color: #ecfdf5 !important; border-color: #10b981 !important; color: #065f46 !important; transform: scale(1.02); }
-        .wrong { background-color: #fef2f2 !important; border-color: #ef4444 !important; color: #991b1b !important; }
-        .blur-in { animation: blurIn 0.3s ease-out; }
-        @keyframes blurIn { from { opacity: 0; filter: blur(4px); transform: translateY(10px); } to { opacity: 1; filter: blur(0); transform: translateY(0); } }
+        .correct { background-color: #ecfdf5 !important; border-color: #10b981 !important; color: #064e3b !important; border-width: 4px; }
+        .wrong { background-color: #fef2f2 !important; border-color: #ef4444 !important; color: #7f1d1d !important; }
+        /* 隐藏滚动条 */
+        ::-webkit-scrollbar { width: 0px; }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4 md:p-8">
+<body class="min-h-screen flex items-center justify-center p-0 md:p-6">
 
-    <div id="app" class="w-full max-w-4xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-100 flex flex-col md:flex-row min-h-[600px]">
+    <div id="app" class="w-full max-w-5xl bg-white shadow-2xl md:rounded-[2.5rem] overflow-hidden flex flex-col md:flex-row min-h-screen md:min-h-[700px]">
         
-        <div class="w-full md:w-1/3 bg-indigo-600 p-8 md:p-12 text-white flex flex-col justify-between">
-            <div>
-                <div class="inline-block px-3 py-1 rounded-full bg-indigo-500/50 text-[10px] font-bold tracking-widest uppercase mb-4">TEM-8</div>
-                <h1 class="text-3xl md:text-4xl font-extrabold mb-2 leading-tight">词汇大师</h1>
-                <p id="chapter-display" class="text-indigo-200 text-sm font-medium">词库同步中...</p>
-            </div>
-            
-            <div class="mt-8 md:mt-0">
-                <div class="flex justify-between text-xs font-bold mb-2">
-                    <span class="opacity-70">学习进度</span>
-                    <span id="progress-text">0%</span>
+        <div class="w-full md:w-80 bg-indigo-700 p-8 text-white flex flex-col justify-between">
+            <div class="space-y-6">
+                <div>
+                    <h1 class="text-3xl font-black italic tracking-tighter">TEM-8 MASTER</h1>
+                    <div id="chapter-tag" class="mt-2 inline-block px-3 py-1 bg-white/20 rounded-lg text-[10px] font-bold tracking-widest uppercase">加载词库中...</div>
                 </div>
-                <div class="w-full h-2 bg-indigo-700 rounded-full overflow-hidden">
-                    <div id="progress-bar" class="h-full bg-white transition-all duration-500" style="width: 0%"></div>
+                
+                <div class="grid grid-cols-2 md:grid-cols-1 gap-4 pt-4">
+                    <div class="bg-white/10 p-4 rounded-2xl">
+                        <p class="text-[10px] opacity-60 font-bold uppercase mb-1">已掌握</p>
+                        <p id="stat-done" class="text-3xl font-black">0</p>
+                    </div>
+                    <div class="bg-white/10 p-4 rounded-2xl">
+                        <p class="text-[10px] opacity-60 font-bold uppercase mb-1">本组剩余</p>
+                        <p id="stat-remain" class="text-3xl font-black">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8">
+                <div class="flex justify-between text-[10px] font-black mb-2 opacity-70 uppercase tracking-widest">学习进度</div>
+                <div class="h-3 bg-indigo-900 rounded-full overflow-hidden">
+                    <div id="progress-bar" class="h-full bg-emerald-400 transition-all duration-700" style="width: 0%"></div>
                 </div>
             </div>
         </div>
 
-        <div class="w-full md:w-2/3 p-8 md:p-12 flex flex-col">
-            <div id="quiz-area" class="flex-grow">
-                <div class="mb-10 blur-in">
-                    <h2 id="q-word" class="text-5xl md:text-7xl font-extrabold text-slate-800 tracking-tight">------</h2>
+        <div class="flex-1 p-6 md:p-16 flex flex-col justify-center relative bg-white">
+            
+            <div id="quiz-container" class="max-w-2xl mx-auto w-full">
+                <div class="flex items-center gap-6 mb-12">
+                    <h2 id="q-word" class="text-6xl md:text-8xl font-black text-slate-900 tracking-tight">------</h2>
+                    <button onclick="speak()" class="p-4 bg-slate-100 rounded-full hover:bg-indigo-100 text-indigo-600 transition active:scale-90">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                    </button>
                 </div>
 
-                <div id="options-grid" class="grid grid-cols-1 gap-4 mb-8">
-                    </div>
+                <div id="options-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
 
-                <div id="feedback" class="hidden space-y-6 blur-in">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100">
-                            <p class="text-[10px] font-black text-indigo-500 uppercase mb-1 tracking-widest">中文释义</p>
-                            <p id="fb-cn" class="text-lg font-bold text-slate-800"></p>
+                <div id="feedback" class="hidden mt-8 space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+                    <div class="space-y-4">
+                        <div class="bg-indigo-50 p-6 rounded-[2rem] border-l-8 border-indigo-500">
+                            <p class="text-xs font-black text-indigo-400 uppercase tracking-widest mb-2">中文释义 Meaning</p>
+                            <p id="fb-cn" class="text-2xl md:text-3xl font-bold text-slate-800"></p>
                         </div>
-                        <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100">
-                            <p class="text-[10px] font-black text-indigo-500 uppercase mb-1 tracking-widest">英文释义</p>
-                            <p id="fb-en" class="text-md font-medium text-slate-600 leading-snug italic"></p>
+                        <div class="bg-slate-50 p-6 rounded-[2rem] border-l-8 border-slate-300">
+                            <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">英文解析 Definition</p>
+                            <p id="fb-en" class="text-2xl md:text-3xl font-medium text-slate-600 italic leading-relaxed"></p>
                         </div>
                     </div>
-                    
-                    <button onclick="handleNext()" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold text-lg hover:bg-black transition-all active:scale-[0.98] shadow-xl hover:shadow-indigo-200">
-                        掌握了，下一题 →
+                    <button onclick="renderNext()" class="w-full bg-slate-900 text-white py-6 rounded-2xl font-black text-xl hover:bg-black transition-all active:scale-[0.97] shadow-2xl">
+                        记住了，下一题 →
                     </button>
                 </div>
             </div>
 
-            <div id="error-msg" class="hidden text-center py-20">
-                <div class="text-4xl mb-4">⚠️</div>
-                <p class="text-red-500 font-bold">词库加载异常</p>
-                <p class="text-sm text-slate-400 mt-2">请确保 vocab.json 格式正确且路径有效</p>
+            <div id="error-screen" class="hidden text-center space-y-4">
+                <span class="text-6xl">🔗</span>
+                <h3 class="text-xl font-bold text-red-500">词库连接失败</h3>
+                <p class="text-slate-400">请确认 vocab.json 已上传并开启了 GitHub Pages</p>
             </div>
         </div>
     </div>
 
     <script>
-        // 配置：请根据实际情况修改
+        // 【设置：请替换为你的 RAW 链接】
         const JSON_URL = 'https://raw.githubusercontent.com/namegoodone/tem8-vocab/main/vocab.json';
         
-        let VOCAB_DATA = [];
-        let currentIndex = 0;
+        let VOCAB = [];
+        let cur = 0;
+        let mastered = parseInt(localStorage.getItem('tem8_mastered')) || 0;
 
         async function init() {
             try {
-                const response = await fetch(JSON_URL);
-                if (!response.ok) throw new Error();
-                VOCAB_DATA = await response.json();
-                renderQuestion();
-            } catch (error) {
-                document.getElementById('quiz-area').classList.add('hidden');
-                document.getElementById('error-msg').classList.remove('hidden');
+                const res = await fetch(JSON_URL);
+                VOCAB = await res.json();
+                renderNext();
+            } catch (e) {
+                document.getElementById('quiz-container').classList.add('hidden');
+                document.getElementById('error-screen').classList.remove('hidden');
             }
         }
 
-        function renderQuestion() {
-            const q = VOCAB_DATA[currentIndex % VOCAB_DATA.length];
+        function renderNext() {
+            if (cur >= VOCAB.length) cur = 0; // 循环复习
+            const q = VOCAB[cur];
             
-            // 更新进度
-            const progress = Math.round(((currentIndex + 1) / VOCAB_DATA.length) * 100);
-            document.getElementById('progress-bar').style.width = progress + '%';
-            document.getElementById('progress-text').innerText = progress + '%';
-
-            // 更新文本
-            document.getElementById('chapter-display').innerText = `当前章节：${q.chapter}`;
+            // 更新 UI 状态
+            document.getElementById('chapter-tag').innerText = q.chapter;
             document.getElementById('q-word').innerText = q.word;
             document.getElementById('feedback').classList.add('hidden');
+            document.getElementById('options-grid').classList.remove('hidden');
+            document.getElementById('stat-done').innerText = mastered;
+            document.getElementById('stat-remain').innerText = VOCAB.length - (cur % VOCAB.length);
             
+            const progress = (cur / VOCAB.length) * 100;
+            document.getElementById('progress-bar').style.width = progress + '%';
+
+            // 生成选项
             const grid = document.getElementById('options-grid');
             grid.innerHTML = '';
-            grid.classList.remove('hidden');
-
             q.options.forEach((opt, idx) => {
                 const btn = document.createElement('button');
-                btn.className = "option-btn w-full text-left p-5 border-2 border-slate-100 rounded-2xl font-semibold text-slate-700 hover:border-indigo-300 hover:bg-indigo-50 text-lg md:text-xl shadow-sm";
+                btn.className = "option-btn w-full text-left p-6 border-2 border-slate-100 rounded-2xl font-bold text-slate-700 hover:border-indigo-500 hover:bg-indigo-50 text-xl shadow-sm";
                 btn.innerText = opt;
                 btn.onclick = () => {
                     document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
-                    if (idx === q.answer) btn.classList.add('correct');
-                    else btn.classList.add('wrong');
-                    
+                    if (idx === q.answer) {
+                        btn.classList.add('correct');
+                        mastered++;
+                        localStorage.setItem('tem8_mastered', mastered);
+                    } else {
+                        btn.classList.add('wrong');
+                    }
                     document.getElementById('fb-cn').innerText = q.meaning_cn;
                     document.getElementById('fb-en').innerText = q.meaning_en;
                     document.getElementById('feedback').classList.remove('hidden');
-                    grid.classList.add('hidden'); // 答题后隐藏选项，腾出空间给解释
+                    document.getElementById('options-grid').classList.add('hidden'); // 答题后收起选项
                 };
                 grid.appendChild(btn);
             });
+            cur++;
         }
 
-        function handleNext() {
-            currentIndex++;
-            renderQuestion();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+        function speak() {
+            const msg = new SpeechSynthesisUtterance(document.getElementById('q-word').innerText);
+            msg.lang = 'en-US';
+            window.speechSynthesis.speak(msg);
         }
 
         init();
