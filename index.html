@@ -3,156 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>专八词汇·大字易读版</title>
+    <title>专八词汇·高效消灭版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: 'Inter', system-ui, sans-serif; background-color: #f1f5f9; }
-        #sidebar { transition: transform 0.3s ease-in-out; }
-        @media (max-width: 1024px) {
-            #sidebar { transform: translateX(-100%); position: fixed; height: 100vh; z-index: 50; }
-            #sidebar.open { transform: translateX(0); }
-            .main-content { padding: 0.75rem !important; }
-        }
-        /* 复习模式：增加模糊度以匹配大字 */
-        .review-mode .blur-content { filter: blur(12px); transition: filter 0.3s; cursor: pointer; }
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .main-content { height: 100vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        /* 模糊效果 */
+        .review-mode .blur-content { filter: blur(15px); transition: filter 0.3s; cursor: pointer; }
         .review-mode .blur-content.active { filter: blur(0); }
-        .word-card.mastered { opacity: 0.4; filter: grayscale(1); }
-        .chapter-item.active { background-color: #eff6ff; color: #2563eb; font-weight: 800; border-left: 5px solid #2563eb; }
+        /* 掌握后消失动画 */
+        .card-exit { transform: translateX(100%); opacity: 0; transition: all 0.4s ease; }
+        .chapter-card.active { border-color: #3b82f6; background-color: #eff6ff; }
     </style>
 </head>
-<body class="flex min-h-screen overflow-hidden text-slate-900">
+<body class="flex flex-col lg:flex-row">
 
-    <div id="overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/60 z-40 hidden"></div>
-
-    <aside id="sidebar" class="w-72 bg-white border-r border-slate-200 flex flex-col flex-shrink-0 shadow-2xl lg:shadow-none">
+    <aside class="w-full lg:w-80 bg-white border-r border-slate-200 flex flex-col h-auto lg:h-screen shrink-0">
         <div class="p-6 border-b bg-slate-50">
-            <h2 class="text-2xl font-black text-slate-800 tracking-tight">管理面板</h2>
-            <div class="grid grid-cols-2 gap-2 mt-6">
-                <button onclick="syncCopy()" class="bg-blue-600 text-white py-3 rounded-xl text-xs font-bold shadow-lg active:scale-95 transition-transform">复制同步码</button>
-                <button onclick="syncPaste()" class="bg-slate-800 text-white py-3 rounded-xl text-xs font-bold active:scale-95 transition-transform">粘贴同步码</button>
+            <h2 class="text-2xl font-black mb-4">学习进度</h2>
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="syncCopy()" class="bg-blue-600 text-white py-3 rounded-xl text-xs font-bold">复制同步码</button>
+                <button onclick="syncPaste()" class="bg-slate-800 text-white py-3 rounded-xl text-xs font-bold">粘贴同步码</button>
             </div>
         </div>
-        <nav id="chapterNav" class="flex-1 overflow-y-auto py-2 px-2 space-y-1"></nav>
+        <div id="chapterStats" class="flex-1 overflow-y-auto p-4 space-y-3">
+            </div>
     </aside>
 
-    <main class="flex-1 flex flex-col min-w-0 bg-slate-100 relative">
-        <header class="bg-white border-b border-slate-200 p-4 flex items-center justify-between sticky top-0 z-30 lg:hidden">
-            <button onclick="toggleSidebar()" class="p-2 bg-slate-100 rounded-xl">
-                <svg class="w-7 h-7 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
-            </button>
-            <h1 class="text-xl font-black text-slate-800 truncate px-4" id="mobileTitle">加载中...</h1>
-            <div class="w-10"></div>
+    <main class="main-content flex-1 p-4 lg:p-8" id="scrollContainer">
+        <header class="max-w-3xl mx-auto mb-6 flex justify-between items-center">
+            <h1 id="currentTitle" class="text-2xl font-bold">请选择章节</h1>
+            <div class="flex bg-white p-1 rounded-xl shadow-sm border">
+                <button onclick="setMode('normal')" id="nBtn" class="px-6 py-2 rounded-lg text-sm font-bold bg-blue-600 text-white">浏览</button>
+                <button onclick="setMode('review')" id="rBtn" class="px-6 py-2 rounded-lg text-sm font-bold text-slate-400">复习</button>
+            </div>
         </header>
 
-        <div class="main-content flex-1 overflow-y-auto p-4 lg:p-12" id="scrollContainer">
-            <div class="max-w-4xl mx-auto">
-                <div class="lg:hidden fixed bottom-8 left-1/2 -translate-x-1/2 flex bg-white/90 backdrop-blur-md p-2 rounded-2xl shadow-2xl border border-white z-40">
-                    <button onclick="setMode('normal')" id="mnBtn" class="px-8 py-3 rounded-xl text-sm font-black bg-blue-600 text-white shadow-lg transition-all">浏览</button>
-                    <button onclick="setMode('review')" id="mrBtn" class="px-8 py-3 rounded-xl text-sm font-black text-slate-400">复习</button>
-                </div>
-
-                <div id="vocabList" class="space-y-6 pb-32">
-                    </div>
+        <div id="vocabList" class="max-w-3xl mx-auto space-y-6 pb-40">
             </div>
-        </div>
     </main>
 
     <script>
         let allData = [];
-        let progress = { mastered: [], lastChapter: "", lastWord: "" };
+        let masteredWords = new Set();
         let isReviewMode = false;
-
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('open');
-            document.getElementById('overlay').classList.toggle('hidden');
-        }
+        let currentChapter = "";
 
         async function init() {
-            const saved = localStorage.getItem('vocab_sync_v2');
-            if (saved) progress = JSON.parse(saved);
+            const saved = localStorage.getItem('vocab_sync_v3');
+            if (saved) {
+                const p = JSON.parse(saved);
+                masteredWords = new Set(p.mastered || []);
+                currentChapter = p.lastChapter;
+            }
 
             try {
                 const res = await fetch('vocab.json');
                 allData = await res.json();
-                renderUI();
+                renderStats();
+                if (currentChapter) loadChapter(currentChapter);
             } catch (e) {
-                document.getElementById('vocabList').innerHTML = `<div class="p-10 text-center bg-white rounded-3xl">请通过本地服务器运行以加载 vocab.json</div>`;
+                alert("请确保 vocab.json 在同级目录并使用服务器打开。");
             }
         }
 
-        function renderUI() {
-            const chapters = [...new Set(allData.map(d => d.chapter))];
-            document.getElementById('chapterNav').innerHTML = chapters.map(ch => `
-                <div onclick="loadChapter('${ch}')" id="nav-${ch}" class="chapter-item px-5 py-4 cursor-pointer hover:bg-slate-50 rounded-2xl text-base flex justify-between items-center transition-all">
-                    <span>${ch}</span>
-                    <span class="text-xs font-bold text-slate-300">${allData.filter(d=>d.chapter===ch).length}</span>
-                </div>
-            `).join('');
-            loadChapter(progress.lastChapter || chapters[0], true);
-        }
-
-        function loadChapter(ch, isFirstLoad = false) {
-            progress.lastChapter = ch;
-            save();
-            document.querySelectorAll('.chapter-item').forEach(e => e.classList.remove('active'));
-            const activeNav = document.getElementById(`nav-${ch}`);
-            if(activeNav) activeNav.classList.add('active');
+        function renderStats() {
+            const groups = [...new Set(allData.map(d => d.chapter))];
+            const container = document.getElementById('chapterStats');
             
-            document.getElementById('mobileTitle').innerText = ch;
+            container.innerHTML = groups.map(ch => {
+                const list = allData.filter(d => d.chapter === ch);
+                const masteredCount = list.filter(d => masteredWords.has(d.word)).length;
+                const remaining = list.length - masteredCount;
+                const isActive = ch === currentChapter;
 
-            const list = allData.filter(d => d.chapter === ch);
-            renderList(list);
-
-            if (window.innerWidth < 1024 && !isFirstLoad) toggleSidebar();
-            if (isFirstLoad && progress.lastWord) {
-                setTimeout(() => {
-                    const el = document.getElementById(`word-${progress.lastWord}`);
-                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 600);
-            }
-        }
-
-        function renderList(data) {
-            const container = document.getElementById('vocabList');
-            container.innerHTML = data.map(item => {
-                const isM = progress.mastered.includes(item.word);
                 return `
-                <div id="word-${item.word}" class="bg-white p-6 md:p-8 rounded-[2.5rem] border-2 transition-all word-card ${isM ? 'mastered border-slate-100 shadow-none' : 'border-white shadow-xl shadow-slate-200/40'}" onclick="markLast('${item.word}')">
-                    <div class="flex justify-between items-start mb-6">
-                        <div class="flex-1">
-                            <h3 class="text-4xl font-black text-slate-800 tracking-tighter">${item.word}</h3>
-                            <div class="text-blue-600 font-mono text-lg mt-1 font-bold">${item.phonetic || ''}</div>
-                        </div>
-                        <button onclick="toggleM('${item.word}');event.stopPropagation();" class="w-14 h-14 rounded-3xl border-4 flex items-center justify-center transition-all ${isM ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-slate-50 border-slate-100 text-slate-200'}">
-                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>
-                        </button>
-                    </div>
-                    <div class="blur-content space-y-5" onclick="this.classList.toggle('active')">
-                        <p class="text-xl font-black text-slate-800 leading-tight bg-yellow-50 inline-block px-1">释：${item.meaning_cn || ''}</p>
-                        <p class="text-lg font-medium text-slate-600 leading-relaxed">${item.definition_en || ''}</p>
-                        <div class="bg-blue-50/70 p-6 rounded-[1.5rem] text-lg italic text-slate-700 leading-relaxed border-l-8 border-blue-400 relative">
-                            <span class="text-blue-300 absolute -top-2 left-2 text-4xl font-serif">“</span>
-                            ${item.sentence_en || ''}
-                        </div>
-                        <p class="text-base text-right text-slate-400 font-bold mt-2">— ${item.sentence_cn || ''}</p>
+                <div onclick="loadChapter('${ch}')" class="chapter-card p-4 rounded-2xl border-2 cursor-pointer transition-all ${isActive ? 'active shadow-md' : 'bg-white border-transparent hover:border-slate-200'}">
+                    <div class="font-bold text-slate-800 mb-2">${ch}</div>
+                    <div class="flex gap-3 text-[11px] font-bold uppercase tracking-wider">
+                        <span class="text-emerald-600">已掌握 ${masteredCount}</span>
+                        <span class="text-blue-500">待学习 ${remaining}</span>
                     </div>
                 </div>`;
             }).join('');
         }
 
-        function toggleM(word) {
-            const idx = progress.mastered.indexOf(word);
-            if (idx > -1) progress.mastered.splice(idx, 1);
-            else progress.mastered.push(word);
-            save();
-            loadChapter(progress.lastChapter);
+        function loadChapter(ch) {
+            currentChapter = ch;
+            saveProgress();
+            renderStats(); // 刷新侧边栏统计
+            document.getElementById('currentTitle').innerText = ch;
+            
+            // 只过滤出“未掌握”的单词显示
+            const list = allData.filter(d => d.chapter === ch && !masteredWords.has(d.word));
+            renderList(list);
+            document.getElementById('scrollContainer').scrollTop = 0;
         }
 
-        function markLast(word) { progress.lastWord = word; save(); }
-        function save() { localStorage.setItem('vocab_sync_v2', JSON.stringify(progress)); }
+        function renderList(data) {
+            const container = document.getElementById('vocabList');
+            if (data.length === 0) {
+                container.innerHTML = `<div class="py-20 text-center text-slate-400 font-bold italic">🎉 本章已全部攻克！</div>`;
+                return;
+            }
+
+            container.innerHTML = data.map(item => `
+                <div id="card-${item.word}" class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-white overflow-hidden transition-all duration-300">
+                    <div class="p-8">
+                        <div class="flex justify-between items-start mb-6">
+                            <div>
+                                <h3 class="text-4xl font-black tracking-tight text-slate-900">${item.word}</h3>
+                                <div class="text-blue-600 font-mono text-xl mt-1 font-bold">${item.phonetic || ''}</div>
+                            </div>
+                            <button onclick="markMastered('${item.word}')" class="group flex flex-col items-center gap-1">
+                                <div class="w-16 h-16 rounded-2xl border-4 border-slate-100 flex items-center justify-center group-hover:bg-emerald-500 group-hover:border-emerald-500 transition-all">
+                                    <svg class="w-8 h-8 text-slate-200 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>
+                                </div>
+                                <span class="text-[10px] font-black text-slate-300 uppercase">掌握</span>
+                            </button>
+                        </div>
+
+                        <div class="blur-content space-y-6" onclick="this.classList.toggle('active')">
+                            <div class="bg-slate-900 text-white p-6 rounded-2xl">
+                                <p class="text-[10px] text-slate-400 uppercase font-black mb-1 tracking-widest">中文解释</p>
+                                <p class="text-3xl font-black leading-tight">${item.meaning_cn || ''}</p>
+                            </div>
+
+                            <p class="text-xl font-medium text-slate-600 leading-relaxed">${item.definition_en || ''}</p>
+                            
+                            <div class="bg-blue-50 p-6 rounded-[1.5rem] border-l-[12px] border-blue-400 relative">
+                                <p class="text-xl italic text-slate-800 leading-relaxed font-serif">"${item.sentence_en || ''}"</p>
+                                <p class="text-lg text-blue-500 font-bold mt-4 text-right">— ${item.sentence_cn || ''}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>`).join('');
+        }
+
+        function markMastered(word) {
+            const card = document.getElementById(`card-${word}`);
+            card.classList.add('card-exit'); // 触发消失动画
+            
+            setTimeout(() => {
+                masteredWords.add(word);
+                saveProgress();
+                loadChapter(currentChapter); // 刷新列表，该单词消失
+            }, 400);
+        }
+
+        function saveProgress() {
+            localStorage.setItem('vocab_sync_v3', JSON.stringify({
+                mastered: [...masteredWords],
+                lastChapter: currentChapter
+            }));
+        }
 
         function syncCopy() {
-            const code = btoa(unescape(encodeURIComponent(JSON.stringify(progress))));
+            const code = btoa(unescape(encodeURIComponent(JSON.stringify({
+                mastered: [...masteredWords],
+                lastChapter: currentChapter
+            }))));
             navigator.clipboard.writeText(code).then(() => alert("同步码已复制！"));
         }
 
@@ -160,22 +170,20 @@
             const code = prompt("粘贴同步码：");
             if (code) {
                 try {
-                    progress = JSON.parse(decodeURIComponent(escape(atob(code))));
-                    save();
+                    const p = JSON.parse(decodeURIComponent(escape(atob(code))));
+                    masteredWords = new Set(p.mastered);
+                    currentChapter = p.lastChapter;
+                    saveProgress();
                     location.reload();
-                } catch(e) { alert("码无效"); }
+                } catch(e) { alert("同步码无效"); }
             }
         }
 
         function setMode(m) {
             isReviewMode = (m === 'review');
             document.getElementById('vocabList').classList.toggle('review-mode', isReviewMode);
-            const updateMobBtn = (id, active) => {
-                const el = document.getElementById(id);
-                if(!el) return;
-                el.className = active ? 'px-8 py-3 rounded-xl text-sm font-black bg-blue-600 text-white shadow-lg' : 'px-8 py-3 rounded-xl text-sm font-black text-slate-400';
-            };
-            updateMobBtn('mnBtn', m==='normal'); updateMobBtn('mrBtn', m==='review');
+            document.getElementById('nBtn').className = m==='normal' ? 'px-6 py-2 rounded-lg text-sm font-bold bg-blue-600 text-white' : 'px-6 py-2 rounded-lg text-sm font-bold text-slate-400';
+            document.getElementById('rBtn').className = m==='review' ? 'px-6 py-2 rounded-lg text-sm font-bold bg-blue-600 text-white' : 'px-6 py-2 rounded-lg text-sm font-bold text-slate-400';
         }
 
         init();
