@@ -3,87 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>专八词汇·消灭系统 Pro</title>
+    <title>专八词汇·Safari 兼容版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root {
-            /* 兼容 Safari 刘海屏安全距离 */
             --safe-top: env(safe-area-inset-top, 0px);
+            --header-height: 70px;
         }
-        body { font-family: system-ui, sans-serif; background-color: #f1f5f9; padding-top: var(--safe-top); }
         
-        /* 侧边栏布局修复 */
-        .sidebar { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 100; width: 320px; }
-        @media (max-width: 1024px) {
-            .sidebar { position: fixed; height: 100vh; transform: translateX(-100%); top: 0; left: 0; }
-            .sidebar.open { transform: translateX(0); }
-            .sidebar-content { padding-top: calc(85px + var(--safe-top)); }
-        }
-
-        /* 抬头 Safari 适配 */
-        .sticky-header {
-            top: 0;
+        /* 解决 Safari 工具栏导致的 100vh 偏差 */
+        body { 
+            height: 100svh; 
+            background-color: #f1f5f9; 
+            margin: 0; 
             padding-top: var(--safe-top);
-            z-index: 40;
+            overflow: hidden;
+            display: flex;
         }
 
-        .main-content { height: 100vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        /* 强制 Header 永远置顶 */
+        .safari-header {
+            position: fixed;
+            top: var(--safe-top);
+            left: 0;
+            right: 0;
+            height: var(--header-height);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid #e2e8f0;
+            z-index: 2000; /* 极高层级 */
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1rem;
+        }
+
+        /* 侧边栏 */
+        .sidebar { 
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+            z-index: 3000; /* 比 Header 更高 */
+            width: 320px;
+            background: white;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            transform: translateX(-100%);
+        }
+        .sidebar.open { transform: translateX(0); }
         
-        /* 勾选掌握动画 */
+        @media (min-width: 1024px) {
+            .sidebar { position: static; transform: translateX(0); }
+            .main-scroll-area { padding-top: 2rem !important; }
+            .safari-header { display: none; }
+        }
+
+        /* 滚动区域需避开 Header 高度 */
+        .main-scroll-area { 
+            flex: 1;
+            height: 100svh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-top: calc(var(--header-height) + 1rem); 
+            box-sizing: border-box;
+        }
+
+        /* 掌握动画 */
         .card-mastered-anim { 
-            animation: masteredOut 0.5s forwards cubic-bezier(0.4, 0, 0.2, 1);
+            animation: masteredOut 0.5s forwards;
             pointer-events: none;
         }
         @keyframes masteredOut {
-            0% { transform: scale(1); background-color: white; }
-            30% { transform: scale(1.05); background-color: #d1fae5; border-color: #10b981; }
-            100% { transform: translateX(120%) rotate(5deg); opacity: 0; }
+            0% { transform: scale(1); }
+            100% { transform: translateX(100%); opacity: 0; }
         }
 
-        .review-mode .blur-content { filter: blur(25px); transition: filter 0.3s; cursor: pointer; }
-        .review-mode .blur-content.active { filter: blur(0); }
+        .blur-content { filter: blur(25px); transition: filter 0.3s; cursor: pointer; }
+        .blur-content.active { filter: blur(0); }
     </style>
 </head>
 <body class="flex overflow-hidden">
 
-    <div id="overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/60 z-[90] hidden lg:hidden"></div>
+    <div id="overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/60 z-[2500] hidden lg:hidden"></div>
 
-    <aside id="sidebar" class="sidebar bg-white border-r border-slate-200 flex flex-col shrink-0 shadow-2xl lg:shadow-none">
-        <div class="p-6 border-b bg-white sticky top-0 z-20 shadow-sm" style="padding-top: calc(1.5rem + var(--safe-top))">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-black text-slate-800">学习进度</h2>
-                <button onclick="location.reload()" class="text-[10px] bg-slate-100 px-2 py-1 rounded-lg">刷新</button>
-            </div>
-            <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden mb-4 border border-slate-200">
+    <aside id="sidebar" class="sidebar border-r border-slate-200 flex flex-col shrink-0">
+        <div class="p-6 border-b" style="padding-top: calc(1.5rem + var(--safe-top))">
+            <h2 class="text-xl font-black text-slate-800 mb-4">学习进度</h2>
+            <div id="totalBarBg" class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden mb-4">
                 <div id="totalBar" class="bg-blue-600 h-full transition-all duration-700" style="width: 0%"></div>
             </div>
             <div class="grid grid-cols-2 gap-2">
-                <button onclick="syncCopy()" class="bg-blue-600 text-white py-2 rounded-xl text-[10px] font-bold shadow-md">同步导出</button>
-                <button id="importBtn" onclick="syncPasteSmart()" class="bg-slate-800 text-white py-2 rounded-xl text-[10px] font-bold shadow-md">导入进度</button>
+                <button onclick="syncCopy()" class="bg-blue-600 text-white py-2 rounded-xl text-[10px] font-bold">导出</button>
+                <button onclick="syncPasteSmart()" class="bg-slate-800 text-white py-2 rounded-xl text-[10px] font-bold">导入</button>
             </div>
         </div>
-        
-        <div id="chapterStats" class="sidebar-content flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 pb-20">
-            </div>
+        <div id="chapterStats" class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50"></div>
     </aside>
 
-    <main class="main-content flex-1 flex flex-col min-w-0" id="scrollContainer">
-        <header class="sticky-header bg-white/95 backdrop-blur-md border-b p-4 flex items-center justify-between sticky top-0 lg:hidden shadow-sm">
-            <button onclick="toggleSidebar()" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-black shadow-lg">章节菜单</button>
-            <h1 class="font-black text-slate-700 truncate px-4 text-sm" id="mobileHeaderTitle">加载中...</h1>
-        </header>
+    <header class="safari-header lg:hidden">
+        <button onclick="toggleSidebar()" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-black">章节菜单</button>
+        <div id="mobileHeaderTitle" class="text-slate-700 font-black text-sm truncate max-w-[180px]">选择章节</div>
+        <button onclick="location.reload()" class="p-2 text-slate-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+        </button>
+    </header>
 
+    <main class="main-scroll-area" id="scrollContainer">
         <div class="p-4 lg:p-12 max-w-4xl mx-auto w-full">
             <div class="hidden lg:flex justify-between items-center mb-10">
                 <h2 id="currentTitle" class="text-3xl font-black text-slate-900 tracking-tighter">请选择章节</h2>
-                <div class="flex bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200">
-                    <button onclick="setMode('normal')" id="nBtn" class="px-8 py-2.5 rounded-xl text-sm font-black bg-blue-600 text-white transition-all shadow-md">浏览模式</button>
-                    <button onclick="setMode('review')" id="rBtn" class="px-8 py-2.5 rounded-xl text-sm font-black text-slate-400 transition-all">复习模式</button>
+                <div class="flex bg-white p-1 rounded-2xl shadow-sm border border-slate-200">
+                    <button onclick="setMode('normal')" id="nBtn" class="px-8 py-2 text-sm font-black bg-blue-600 text-white rounded-xl">浏览</button>
+                    <button onclick="setMode('review')" id="rBtn" class="px-8 py-2 text-sm font-black text-slate-400">复习</button>
                 </div>
             </div>
 
-            <div id="vocabList" class="space-y-8 pb-40">
-                </div>
+            <div class="lg:hidden flex bg-white p-1 rounded-2xl border mb-6 shadow-sm">
+                <button onclick="setMode('normal')" id="mnBtn" class="flex-1 py-2 rounded-xl text-xs font-black bg-blue-600 text-white">浏览</button>
+                <button onclick="setMode('review')" id="mrBtn" class="flex-1 py-2 rounded-xl text-xs font-black text-slate-400">复习</button>
+            </div>
+
+            <div id="vocabList" class="space-y-8 pb-32"></div>
         </div>
     </main>
 
@@ -95,16 +136,13 @@
         let viewType = "todo"; 
 
         async function init() {
-            const saved = localStorage.getItem('vocab_sync_v6');
+            const saved = localStorage.getItem('vocab_sync_v7');
             if (saved) {
-                try {
-                    const p = JSON.parse(saved);
-                    masteredWords = new Set(p.mastered || []);
-                    currentChapter = p.lastChapter || "";
-                    viewType = p.lastViewType || "todo";
-                } catch(e) {}
+                const p = JSON.parse(saved);
+                masteredWords = new Set(p.mastered || []);
+                currentChapter = p.lastChapter || "";
+                viewType = p.lastViewType || "todo";
             }
-
             try {
                 const res = await fetch('vocab.json');
                 allData = await res.json();
@@ -112,9 +150,9 @@
                 if (!currentChapter) currentChapter = chapters[0];
                 renderStats();
                 loadChapter(currentChapter, viewType);
-                updateTotalProgress();
+                updateTotal();
             } catch (e) {
-                document.getElementById('vocabList').innerHTML = `<div class="p-10 text-center bg-white rounded-3xl border-2 border-dashed">无法加载 vocab.json</div>`;
+                document.getElementById('vocabList').innerHTML = "JSON 加载失败";
             }
         }
 
@@ -125,23 +163,22 @@
 
         function renderStats() {
             const groups = [...new Set(allData.map(d => d.chapter))];
-            const container = document.getElementById('chapterStats');
-            container.innerHTML = groups.map(ch => {
+            document.getElementById('chapterStats').innerHTML = groups.map(ch => {
                 const list = allData.filter(d => d.chapter === ch);
-                const mCount = list.filter(d => masteredWords.has(d.word)).length;
-                const tCount = list.length - mCount;
-                const isActive = ch === currentChapter;
+                const m = list.filter(d => masteredWords.has(d.word)).length;
+                const t = list.length - m;
+                const active = ch === currentChapter;
                 return `
-                <div class="chapter-card p-4 rounded-[1.5rem] border-2 transition-all bg-white ${isActive ? 'active border-blue-500 shadow-xl' : 'border-transparent shadow-sm'}">
-                    <div class="font-black text-slate-800 text-lg mb-4 ml-1">${ch}</div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <button onclick="loadChapter('${ch}', 'todo')" class="flex flex-col items-center py-4 rounded-2xl transition-all ${viewType==='todo' && isActive ? 'bg-blue-600 text-white shadow-lg' : 'bg-blue-50 text-blue-600'}">
-                            <span class="text-xl font-black">${tCount}</span>
-                            <span class="text-[10px] font-bold uppercase opacity-80">待学习</span>
+                <div class="p-4 rounded-[1.5rem] border-2 bg-white ${active ? 'border-blue-500 shadow-lg' : 'border-transparent shadow-sm'}">
+                    <div class="font-black text-slate-800 mb-3 ml-1">${ch}</div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="loadChapter('${ch}', 'todo')" class="py-3 rounded-xl flex flex-col items-center ${viewType==='todo'&&active ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600'}">
+                            <span class="text-lg font-black">${t}</span>
+                            <span class="text-[9px] font-bold uppercase">待学习</span>
                         </button>
-                        <button onclick="loadChapter('${ch}', 'mastered')" class="flex flex-col items-center py-4 rounded-2xl transition-all ${viewType==='mastered' && isActive ? 'bg-emerald-600 text-white shadow-lg' : 'bg-emerald-50 text-emerald-600'}">
-                            <span class="text-xl font-black">${mCount}</span>
-                            <span class="text-[10px] font-bold uppercase opacity-80">已掌握</span>
+                        <button onclick="loadChapter('${ch}', 'mastered')" class="py-3 rounded-xl flex flex-col items-center ${viewType==='mastered'&&active ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-600'}">
+                            <span class="text-lg font-black">${m}</span>
+                            <span class="text-[9px] font-bold uppercase">已掌握</span>
                         </button>
                     </div>
                 </div>`;
@@ -149,51 +186,41 @@
         }
 
         function loadChapter(ch, type) {
-            currentChapter = ch;
-            viewType = type;
-            saveProgress();
-            renderStats();
-            updateTotalProgress();
-            const titleStr = `${ch} · ${type === 'todo' ? '待学习' : '已掌握'}`;
-            document.getElementById('mobileHeaderTitle').innerText = titleStr;
+            currentChapter = ch; viewType = type;
+            renderStats(); updateTotal();
+            document.getElementById('mobileHeaderTitle').innerText = ch;
             const list = allData.filter(d => d.chapter === ch && (type === 'todo' ? !masteredWords.has(d.word) : masteredWords.has(d.word)));
             renderList(list);
             document.getElementById('scrollContainer').scrollTop = 0;
-            if (window.innerWidth < 1024) toggleSidebar(); 
+            if (window.innerWidth < 1024 && document.getElementById('sidebar').classList.contains('open')) toggleSidebar();
         }
 
         function renderList(data) {
             const container = document.getElementById('vocabList');
             if (data.length === 0) {
-                container.innerHTML = `<div class="py-24 text-center text-slate-400 font-black italic bg-white rounded-[3rem] border-2 border-dashed mx-2">全部清空！</div>`;
+                container.innerHTML = `<div class="py-20 text-center font-black text-slate-300">空空如也</div>`;
                 return;
             }
             container.innerHTML = data.map(item => {
                 const isM = masteredWords.has(item.word);
                 return `
-                <div id="card-${item.word}" class="bg-white rounded-[3rem] shadow-2xl shadow-slate-300/40 border border-white overflow-hidden">
-                    <div class="p-8 md:p-12">
-                        <div class="flex justify-between items-start mb-10">
-                            <div class="flex-1">
-                                <h3 class="text-5xl font-black text-slate-900 tracking-tighter">${item.word}</h3>
-                                <div class="text-blue-600 font-mono text-2xl mt-3 font-bold">${item.phonetic || ''}</div>
-                            </div>
-                            <button onclick="handleMastery('${item.word}')" class="shrink-0 ml-4">
-                                <div class="w-20 h-20 rounded-[2rem] border-4 flex items-center justify-center transition-all ${isM ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-slate-50 text-slate-200'}">
-                                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>
-                                </div>
-                            </button>
+                <div id="card-${item.word}" class="bg-white rounded-[2.5rem] shadow-xl border border-white p-8">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <h3 class="text-4xl font-black text-slate-900">${item.word}</h3>
+                            <div class="text-blue-600 text-xl mt-1 font-bold">${item.phonetic || ''}</div>
                         </div>
-                        <div class="blur-content space-y-8" onclick="this.classList.toggle('active')">
-                            <div class="bg-slate-900 text-white p-8 rounded-[2.5rem]">
-                                <p class="text-xs text-slate-500 font-black mb-3">中文解释</p>
-                                <p class="text-4xl font-black leading-tight">${item.meaning_cn || ''}</p>
-                            </div>
-                            <p class="text-2xl font-bold text-slate-700 leading-relaxed">${item.definition_en || ''}</p>
-                            <div class="bg-blue-50/50 p-8 rounded-[2.5rem] border-l-[16px] border-blue-400">
-                                <p class="text-2xl italic text-slate-800 leading-relaxed">"${item.sentence_en || ''}"</p>
-                                <p class="text-xl text-blue-600 font-black mt-6 text-right">— ${item.sentence_cn || ''}</p>
-                            </div>
+                        <button onclick="handleMastery('${item.word}')" class="w-16 h-16 rounded-2xl border-4 flex items-center justify-center transition-all ${isM ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-slate-50 text-slate-200'}">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>
+                        </button>
+                    </div>
+                    <div class="blur-content space-y-6" onclick="this.classList.toggle('active')">
+                        <div class="bg-slate-900 text-white p-6 rounded-2xl">
+                            <p class="text-3xl font-black leading-tight">${item.meaning_cn || ''}</p>
+                        </div>
+                        <p class="text-xl font-bold text-slate-600">${item.definition_en || ''}</p>
+                        <div class="bg-blue-50 p-6 rounded-2xl border-l-[12px] border-blue-400">
+                            <p class="text-xl italic font-serif">"${item.sentence_en || ''}"</p>
                         </div>
                     </div>
                 </div>`;
@@ -204,71 +231,50 @@
             const card = document.getElementById(`card-${word}`);
             if (viewType === 'todo') {
                 card.classList.add('card-mastered-anim');
-                setTimeout(() => {
-                    masteredWords.add(word);
-                    saveProgress();
-                    loadChapter(currentChapter, viewType);
-                }, 500);
+                setTimeout(() => { masteredWords.add(word); save(); loadChapter(currentChapter, viewType); }, 500);
             } else {
-                masteredWords.delete(word);
-                saveProgress();
-                loadChapter(currentChapter, viewType);
+                masteredWords.delete(word); save(); loadChapter(currentChapter, viewType);
             }
         }
 
-        // 智能同步功能：读取剪切板
         async function syncPasteSmart() {
             try {
-                // 尝试直接从剪切板读取
                 const text = await navigator.clipboard.readText();
-                if (text && text.length > 20) {
-                    applyCode(text);
-                } else {
-                    throw new Error("剪切板内容为空或格式不对");
-                }
+                if (text) apply(text);
             } catch (err) {
-                // 如果权限受限，回退到弹窗模式
-                const code = prompt("无法自动读取剪切板，请在此粘贴同步码：");
-                if (code) applyCode(code);
+                const code = prompt("请粘贴同步码：");
+                if (code) apply(code);
             }
         }
 
-        function applyCode(code) {
+        function apply(code) {
             try {
                 const p = JSON.parse(decodeURIComponent(escape(atob(code))));
-                masteredWords = new Set(p.mastered);
-                currentChapter = p.lastChapter;
-                viewType = p.lastViewType || "todo";
-                saveProgress();
-                location.reload();
-            } catch(e) { alert("同步码无效"); }
+                masteredWords = new Set(p.mastered); currentChapter = p.lastChapter; viewType = p.lastViewType;
+                save(); location.reload();
+            } catch(e) { alert("无效码"); }
         }
 
-        function saveProgress() {
-            localStorage.setItem('vocab_sync_v6', JSON.stringify({
-                mastered: [...masteredWords], lastChapter: currentChapter, lastViewType: viewType
-            }));
+        function save() {
+            localStorage.setItem('vocab_sync_v7', JSON.stringify({ mastered: [...masteredWords], lastChapter: currentChapter, lastViewType: viewType }));
         }
 
-        function updateTotalProgress() {
-            const percent = (masteredWords.size / allData.length * 100).toFixed(1);
-            document.getElementById('totalBar').style.width = percent + '%';
+        function updateTotal() {
+            document.getElementById('totalBar').style.width = (masteredWords.size / allData.length * 100) + '%';
         }
 
         function setMode(m) {
             isReviewMode = (m === 'review');
             document.getElementById('vocabList').classList.toggle('review-mode', isReviewMode);
-            const activeS = "px-8 py-2.5 rounded-xl text-sm font-black bg-blue-600 text-white shadow-md";
-            const inactiveS = "px-8 py-2.5 rounded-xl text-sm font-black text-slate-400";
-            document.getElementById('nBtn').className = m === 'normal' ? activeS : inactiveS;
-            document.getElementById('rBtn').className = m === 'review' ? activeS : inactiveS;
+            const activeS = "flex-1 py-2 rounded-xl text-xs font-black bg-blue-600 text-white transition-all";
+            const inactiveS = "flex-1 py-2 rounded-xl text-xs font-black text-slate-400 transition-all";
+            document.getElementById('mnBtn').className = m === 'normal' ? activeS : inactiveS;
+            document.getElementById('mrBtn').className = m === 'review' ? activeS : inactiveS;
         }
 
         function syncCopy() {
-            const data = btoa(unescape(encodeURIComponent(JSON.stringify({
-                mastered: [...masteredWords], lastChapter: currentChapter, lastViewType: viewType
-            }))));
-            navigator.clipboard.writeText(data).then(() => alert("已复制到剪切板！"));
+            const data = btoa(unescape(encodeURIComponent(JSON.stringify({ mastered: [...masteredWords], lastChapter: currentChapter, lastViewType: viewType }))));
+            navigator.clipboard.writeText(data).then(() => alert("已复制"));
         }
 
         init();
