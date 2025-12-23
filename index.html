@@ -3,88 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>专八词汇增强库</title>
+    <title>专八词汇·暗号复习版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
-        .word-card:hover { transform: translateY(-2px); transition: all 0.2s; }
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        /* 复习模式下的模糊样式 */
+        .review-mode .blur-content {
+            filter: blur(5px);
+            transition: filter 0.3s ease;
+            cursor: pointer;
+            user-select: none;
+        }
+        .review-mode .blur-content:hover, 
+        .review-mode .blur-content.active {
+            filter: blur(0);
+        }
+        .word-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     </style>
 </head>
 <body class="p-4 md:p-8">
     <div class="max-w-6xl mx-auto">
-        <header class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <header class="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6 bg-white p-6 rounded-2xl shadow-sm">
             <div>
-                <h1 class="text-3xl font-700 text-slate-800">专八词汇增强库</h1>
-                <p class="text-slate-500 mt-1" id="stats">加载中...</p>
+                <h1 class="text-3xl font-800 text-slate-900 tracking-tight">专八词汇增强库</h1>
+                <p class="text-slate-500 mt-2 flex items-center gap-2" id="stats">
+                    <span class="animate-pulse w-2 h-2 bg-blue-500 rounded-full"></span> 正在整备词库...
+                </p>
             </div>
-            <div class="relative">
-                <input type="text" id="searchInput" placeholder="搜索单词或中文..."
-                    class="w-full md:w-80 px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none">
+            
+            <div class="flex flex-wrap items-center gap-4">
+                <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                    <button id="normalBtn" onclick="setMode('normal')" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-white shadow-sm text-blue-600">浏览模式</button>
+                    <button id="reviewBtn" onclick="setMode('review')" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all text-slate-500">复习模式</button>
+                </div>
+                <div class="relative">
+                    <input type="text" id="searchInput" placeholder="搜索词汇..." 
+                        class="w-full md:w-64 px-4 py-2.5 rounded-xl border-0 bg-slate-100 focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                </div>
             </div>
         </header>
 
         <div id="vocabList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div class="p-6 bg-white rounded-xl shadow-sm animate-pulse">
-                <div class="h-6 bg-slate-200 rounded w-1/3 mb-4"></div>
-                <div class="h-4 bg-slate-100 rounded w-full mb-2"></div>
-                <div class="h-4 bg-slate-100 rounded w-2/3"></div>
-            </div>
+            <div class="h-48 bg-white rounded-2xl animate-pulse"></div>
+            <div class="h-48 bg-white rounded-2xl animate-pulse"></div>
+            <div class="h-48 bg-white rounded-2xl animate-pulse"></div>
         </div>
     </div>
 
     <script>
         let vocabulary = [];
+        let isReviewMode = false;
 
-        // 加载 JSON 数据
+        // 切换模式
+        function setMode(mode) {
+            isReviewMode = (mode === 'review');
+            const list = document.getElementById('vocabList');
+            const nBtn = document.getElementById('normalBtn');
+            const rBtn = document.getElementById('reviewBtn');
+
+            if (isReviewMode) {
+                list.classList.add('review-mode');
+                rBtn.classList.add('bg-white', 'shadow-sm', 'text-blue-600');
+                rBtn.classList.remove('text-slate-500');
+                nBtn.classList.remove('bg-white', 'shadow-sm', 'text-blue-600');
+                nBtn.classList.add('text-slate-500');
+            } else {
+                list.classList.remove('review-mode');
+                nBtn.classList.add('bg-white', 'shadow-sm', 'text-blue-600');
+                nBtn.classList.remove('text-slate-500');
+                rBtn.classList.remove('bg-white', 'shadow-sm', 'text-blue-600');
+                rBtn.classList.add('text-slate-500');
+            }
+        }
+
         async function loadVocab() {
             try {
                 const response = await fetch('vocab.json');
                 vocabulary = await response.json();
                 renderList(vocabulary);
-                document.getElementById('stats').innerText = `共收录 ${vocabulary.length} 个核心词汇`;
+                document.getElementById('stats').innerHTML = `已通过 DeepSeek 增强 <strong class="text-slate-900 mx-1">${vocabulary.length}</strong> 词`;
             } catch (err) {
-                document.getElementById('vocabList').innerHTML = `<p class="text-red-500">无法加载 vocab.json，请确保文件在同目录下并启动了本地服务器。</p>`;
+                document.getElementById('vocabList').innerHTML = `<div class="col-span-full text-center py-20 bg-white rounded-2xl">⚠️ 请确保数据已生成且通过本地服务器访问</div>`;
             }
         }
 
-        // 渲染列表
         function renderList(data) {
             const container = document.getElementById('vocabList');
             container.innerHTML = data.map(item => `
-                <div class="word-card bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                    <div class="flex justify-between items-start mb-2">
-                        <h2 class="text-2xl font-bold text-blue-600">${item.word}</h2>
-                        <span class="text-slate-400 text-sm font-mono">${item.phonetic || ''}</span>
+                <div class="word-card bg-white p-6 rounded-2xl border border-transparent hover:border-blue-200 shadow-sm hover:shadow-xl transition-all group">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-bold text-slate-800 group-hover:text-blue-600 transition-colors">${item.word}</h2>
+                        <button onclick="speak('${item.word}')" class="p-2 hover:bg-blue-50 rounded-full text-slate-400 hover:text-blue-500 transition-all">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M11 5a1 1 0 011 1v8a1 1 0 11-2 0V6a1 1 0 011-1zM4.707 7.293a1 1 0 00-1.414 1.414L7.586 13H5a1 1 0 100 2h7a1 1 0 100-2h-2.586l4.293-4.293a1 1 0 00-1.414-1.414L8 12.586 4.707 9.293z"></path></svg>
+                        </button>
                     </div>
-                    <p class="text-sm font-semibold text-slate-700 mb-3">${item.definition_en || '暂无英文释义'}</p>
-
-                    <div class="bg-slate-50 p-3 rounded-lg border-l-4 border-blue-400 mb-2">
-                        <p class="text-slate-800 italic text-sm">"${item.sentence_en || 'Waiting for AI...'}"</p>
+                    
+                    <div class="space-y-3 blur-content" onclick="this.classList.toggle('active')">
+                        <div class="flex items-center gap-2 text-pink-600 font-mono text-sm bg-pink-50 px-2 py-0.5 rounded w-fit">
+                            <span>[${item.phonetic || ''}]</span>
+                        </div>
+                        <p class="text-sm font-semibold text-slate-700 leading-snug">${item.definition_en || ''}</p>
+                        <div class="bg-blue-50/50 p-3 rounded-xl border-l-4 border-blue-200">
+                            <p class="text-slate-800 italic text-sm font-medium">"${item.sentence_en || ''}"</p>
+                        </div>
+                        <p class="text-slate-500 text-xs text-right font-medium">${item.sentence_cn || ''}</p>
                     </div>
-                    <p class="text-slate-600 text-xs text-right">${item.sentence_cn || ''}</p>
-
-                    <button onclick="speak('${item.word}')" class="mt-4 text-xs bg-slate-100 hover:bg-blue-100 text-slate-500 hover:text-blue-600 px-3 py-1 rounded-full transition-colors flex items-center gap-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.414 0A5.982 5.982 0 0115 10a5.982 5.982 0 01-1.414 4.243 1 1 0 01-1.414-1.414A3.982 3.982 0 0013 10a3.982 3.982 0 00-1.414-2.828a1 1 0 010-1.414z" clip-rule="evenodd" />
-                        </svg> 发音
-                    </button>
                 </div>
             `).join('');
         }
 
-        // 语音朗读
         function speak(text) {
             const msg = new SpeechSynthesisUtterance(text);
             msg.lang = 'en-US';
+            msg.rate = 0.9;
             window.speechSynthesis.speak(msg);
         }
 
-        // 搜索功能
         document.getElementById('searchInput').addEventListener('input', (e) => {
             const term = e.target.value.toLowerCase();
-            const filtered = vocabulary.filter(item =>
-                item.word.toLowerCase().includes(term) ||
+            const filtered = vocabulary.filter(item => 
+                item.word.toLowerCase().includes(term) || 
                 (item.sentence_cn && item.sentence_cn.includes(term))
             );
             renderList(filtered);
