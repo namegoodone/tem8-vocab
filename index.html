@@ -3,239 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TEM-8 词汇大师 - 智能同步版</title>
+    <title>专八词汇增强库</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        body { font-family: 'Inter', system-ui, sans-serif; background-color: #f8fafc; }
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 50; backdrop-filter: blur(4px); }
-        .modal.active { display: flex; }
-        .option-btn { transition: all 0.2s; border: 2px solid #f1f5f9; }
-        .correct { background-color: #ecfdf5 !important; border-color: #10b981 !important; color: #064e3b !important; }
-        .wrong { background-color: #fef2f2 !important; border-color: #ef4444 !important; color: #7f1d1d !important; }
-        /* 优化后的字体粗细控制 */
-        .word-font { font-weight: 700; letter-spacing: -0.02em; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .word-card:hover { transform: translateY(-2px); transition: all 0.2s; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen">
-
-    <div id="app" class="max-w-5xl mx-auto flex flex-col md:flex-row min-h-screen shadow-2xl bg-white overflow-hidden">
-        
-        <div class="w-full md:w-80 bg-indigo-700 p-6 text-white flex flex-col justify-between shrink-0">
-            <div class="space-y-6">
-                <div class="flex justify-between items-center">
-                    <h1 class="text-xl font-bold tracking-tight">TEM-8 MASTER</h1>
-                    <button onclick="toggleModal('chapter-modal', true)" class="bg-white/20 px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-white/30 transition">切换章节</button>
-                </div>
-
-                <div class="grid grid-cols-2 md:grid-cols-1 gap-4">
-                    <div onclick="showList('mastered')" class="bg-white/10 p-4 rounded-2xl cursor-pointer hover:bg-white/20 transition group">
-                        <p class="text-[10px] opacity-60 font-bold uppercase tracking-wider mb-1">已掌握</p>
-                        <p id="stat-done" class="text-3xl font-bold">0</p>
-                        <p class="text-[10px] mt-2 text-indigo-200 underline opacity-0 group-hover:opacity-100 transition">点击查看列表</p>
-                    </div>
-                    <div onclick="showList('remaining')" class="bg-white/10 p-4 rounded-2xl cursor-pointer hover:bg-white/20 transition group">
-                        <p class="text-[10px] opacity-60 font-bold uppercase tracking-wider mb-1">本章剩余</p>
-                        <p id="stat-remain" class="text-3xl font-bold">0</p>
-                        <p class="text-[10px] mt-2 text-indigo-200 underline opacity-0 group-hover:opacity-100 transition">点击查看列表</p>
-                    </div>
-                </div>
-                
-                <div class="pt-2">
-                    <p class="text-[10px] opacity-50 uppercase font-bold mb-1">Current Chapter</p>
-                    <p id="cur-chapter-name" class="text-indigo-100 font-semibold italic">加载中...</p>
-                </div>
+<body class="p-4 md:p-8">
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-700 text-slate-800">专八词汇增强库</h1>
+                <p class="text-slate-500 mt-1" id="stats">加载中...</p>
             </div>
-
-            <div class="mt-8 pt-6 border-t border-white/10 space-y-3">
-                <button onclick="exportProgress()" class="w-full text-xs font-bold py-3 bg-emerald-500 hover:bg-emerald-600 rounded-xl transition shadow-lg shadow-emerald-900/20">复制进度到剪切板</button>
-                <button onclick="importProgress()" class="w-full text-xs font-bold py-3 bg-slate-600 hover:bg-slate-700 rounded-xl transition">从剪切板读取进度</button>
-                <p class="text-[9px] opacity-40 text-center">跨设备背词前请先点击同步</p>
+            <div class="relative">
+                <input type="text" id="searchInput" placeholder="搜索单词或中文..."
+                    class="w-full md:w-80 px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none">
             </div>
-        </div>
+        </header>
 
-        <div class="flex-1 p-6 md:p-12 flex flex-col justify-center bg-white">
-            <div id="quiz-area" class="max-w-2xl mx-auto w-full">
-                <div class="mb-10">
-                    <h2 id="q-word" class="text-5xl md:text-7xl word-font text-slate-800">---</h2>
-                </div>
-                
-                <div id="options-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-                
-                <div id="feedback" class="hidden mt-8 space-y-4 animate-in fade-in slide-in-from-bottom-4">
-                    <div class="bg-indigo-50 p-6 rounded-3xl border-l-4 border-indigo-500">
-                        <p id="fb-cn" class="text-xl font-semibold text-slate-800 leading-relaxed"></p>
-                    </div>
-                    <button onclick="renderNext()" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold text-lg hover:bg-black transition shadow-xl">下一题 →</button>
-                </div>
+        <div id="vocabList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="p-6 bg-white rounded-xl shadow-sm animate-pulse">
+                <div class="h-6 bg-slate-200 rounded w-1/3 mb-4"></div>
+                <div class="h-4 bg-slate-100 rounded w-full mb-2"></div>
+                <div class="h-4 bg-slate-100 rounded w-2/3"></div>
             </div>
-        </div>
-    </div>
-
-    <div id="chapter-modal" class="modal items-center justify-center p-4">
-        <div class="bg-white rounded-3xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col shadow-2xl">
-            <div class="p-5 border-b font-bold flex justify-between items-center bg-slate-50">
-                <span>选择学习章节</span>
-                <button onclick="toggleModal('chapter-modal', false)" class="text-slate-400 hover:text-slate-600">✕</button>
-            </div>
-            <div id="chapter-list" class="overflow-y-auto p-4 space-y-2"></div>
-        </div>
-    </div>
-
-    <div id="list-modal" class="modal items-center justify-center p-4">
-        <div class="bg-white rounded-3xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col shadow-2xl">
-            <div class="p-5 border-b font-bold flex justify-between items-center bg-slate-50">
-                <span id="list-title">单词列表</span>
-                <button onclick="toggleModal('list-modal', false)" class="text-slate-400 hover:text-slate-600">✕</button>
-            </div>
-            <div id="word-list-content" class="overflow-y-auto p-5 space-y-2"></div>
         </div>
     </div>
 
     <script>
-        const JSON_URL = 'https://raw.githubusercontent.com/namegoodone/tem8-vocab/main/vocab.json';
-        let ALL_DATA = [];
-        let CURRENT_VOCAB = [];
-        let curIdx = 0;
-        let masteredIds = new Set(JSON.parse(localStorage.getItem('tem8_mastered_ids') || '[]'));
+        let vocabulary = [];
 
-        async function init() {
+        // 加载 JSON 数据
+        async function loadVocab() {
             try {
-                const res = await fetch(JSON_URL);
-                ALL_DATA = await res.json();
-                buildChapters();
-                // 自动恢复上次选择的章节，若无则选第一个
-                const lastChapter = localStorage.getItem('tem8_last_chapter') || ALL_DATA[0].chapter;
-                switchChapter(lastChapter);
-            } catch (e) { alert("词库加载失败，请检查网络"); }
+                const response = await fetch('vocab.json');
+                vocabulary = await response.json();
+                renderList(vocabulary);
+                document.getElementById('stats').innerText = `共收录 ${vocabulary.length} 个核心词汇`;
+            } catch (err) {
+                document.getElementById('vocabList').innerHTML = `<p class="text-red-500">无法加载 vocab.json，请确保文件在同目录下并启动了本地服务器。</p>`;
+            }
         }
 
-        function buildChapters() {
-            const chapters = [...new Set(ALL_DATA.map(i => i.chapter))];
-            const container = document.getElementById('chapter-list');
-            container.innerHTML = chapters.map(c => `
-                <button onclick="switchChapter('${c}')" class="w-full text-left p-4 rounded-xl hover:bg-indigo-50 border border-slate-100 font-bold text-slate-700 transition">${c}</button>
+        // 渲染列表
+        function renderList(data) {
+            const container = document.getElementById('vocabList');
+            container.innerHTML = data.map(item => `
+                <div class="word-card bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start mb-2">
+                        <h2 class="text-2xl font-bold text-blue-600">${item.word}</h2>
+                        <span class="text-slate-400 text-sm font-mono">${item.phonetic || ''}</span>
+                    </div>
+                    <p class="text-sm font-semibold text-slate-700 mb-3">${item.definition_en || '暂无英文释义'}</p>
+
+                    <div class="bg-slate-50 p-3 rounded-lg border-l-4 border-blue-400 mb-2">
+                        <p class="text-slate-800 italic text-sm">"${item.sentence_en || 'Waiting for AI...'}"</p>
+                    </div>
+                    <p class="text-slate-600 text-xs text-right">${item.sentence_cn || ''}</p>
+
+                    <button onclick="speak('${item.word}')" class="mt-4 text-xs bg-slate-100 hover:bg-blue-100 text-slate-500 hover:text-blue-600 px-3 py-1 rounded-full transition-colors flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.414 0A5.982 5.982 0 0115 10a5.982 5.982 0 01-1.414 4.243 1 1 0 01-1.414-1.414A3.982 3.982 0 0013 10a3.982 3.982 0 00-1.414-2.828a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg> 发音
+                    </button>
+                </div>
             `).join('');
         }
 
-        function switchChapter(name) {
-            CURRENT_VOCAB = ALL_DATA.filter(i => i.chapter === name);
-            document.getElementById('cur-chapter-name').innerText = name;
-            localStorage.setItem('tem8_last_chapter', name);
-            curIdx = 0;
-            toggleModal('chapter-modal', false);
-            updateStats();
-            renderNext();
+        // 语音朗读
+        function speak(text) {
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.lang = 'en-US';
+            window.speechSynthesis.speak(msg);
         }
 
-        function updateStats() {
-            const chapterMastered = CURRENT_VOCAB.filter(i => masteredIds.has(i.word)).length;
-            document.getElementById('stat-done').innerText = chapterMastered;
-            document.getElementById('stat-remain').innerText = CURRENT_VOCAB.length - chapterMastered;
-            localStorage.setItem('tem8_mastered_ids', JSON.stringify([...masteredIds]));
-        }
+        // 搜索功能
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = vocabulary.filter(item =>
+                item.word.toLowerCase().includes(term) ||
+                (item.sentence_cn && item.sentence_cn.includes(term))
+            );
+            renderList(filtered);
+        });
 
-        function renderNext() {
-            let found = false;
-            for(let i=0; i<CURRENT_VOCAB.length; i++) {
-                let tempIdx = (curIdx + i) % CURRENT_VOCAB.length;
-                if(!masteredIds.has(CURRENT_VOCAB[tempIdx].word)) {
-                    curIdx = tempIdx;
-                    found = true;
-                    break;
-                }
-            }
-            if(!found) {
-                document.getElementById('q-word').innerText = "本章已完成 🎉";
-                document.getElementById('options-grid').innerHTML = '<button onclick="toggleModal(\'chapter-modal\', true)" class="w-full p-4 bg-indigo-600 text-white rounded-xl font-bold">去学习其它章节</button>';
-                return;
-            }
-
-            const q = CURRENT_VOCAB[curIdx];
-            document.getElementById('q-word').innerText = q.word;
-            document.getElementById('feedback').classList.add('hidden');
-            const grid = document.getElementById('options-grid');
-            grid.innerHTML = '';
-            grid.classList.remove('hidden');
-
-            q.options.forEach((opt, idx) => {
-                const btn = document.createElement('button');
-                btn.className = "option-btn p-5 rounded-2xl font-semibold text-slate-700 hover:bg-slate-50 text-left leading-snug";
-                btn.innerText = opt;
-                btn.onclick = () => {
-                    if(idx === q.answer) {
-                        btn.classList.add('correct');
-                        masteredIds.add(q.word);
-                        updateStats();
-                        setTimeout(renderNext, 600);
-                    } else {
-                        btn.classList.add('wrong');
-                        document.getElementById('fb-cn').innerText = q.meaning_cn;
-                        document.getElementById('feedback').classList.remove('hidden');
-                        grid.classList.add('hidden');
-                    }
-                };
-                grid.appendChild(btn);
-            });
-        }
-
-        function showList(type) {
-            const list = type === 'mastered' 
-                ? CURRENT_VOCAB.filter(i => masteredIds.has(i.word))
-                : CURRENT_VOCAB.filter(i => !masteredIds.has(i.word));
-
-            document.getElementById('list-title').innerText = type === 'mastered' ? "已掌握记录" : "待学习单词";
-            document.getElementById('word-list-content').innerHTML = list.map(i => `
-                <div class="p-4 bg-slate-50 rounded-2xl flex justify-between items-center border border-slate-100">
-                    <div class="flex-1">
-                        <p class="font-bold text-slate-800 text-lg">${i.word}</p>
-                        <p class="text-sm text-slate-500 font-medium">${i.meaning_cn}</p>
-                    </div>
-                </div>
-            `).join('') || "<div class='py-10 text-center text-slate-400 font-medium'>列表为空</div>";
-            
-            toggleModal('list-modal', true);
-        }
-
-        function toggleModal(id, show) {
-            document.getElementById(id).classList.toggle('active', show);
-        }
-
-        // --- 核心剪切板同步逻辑 ---
-
-        async function exportProgress() {
-            try {
-                const data = localStorage.getItem('tem8_mastered_ids');
-                const code = btoa(unescape(encodeURIComponent(data)));
-                await navigator.clipboard.writeText(code);
-                alert("✅ 进度已成功复制到剪切板！\n请在另一台设备点击“导入”即可同步。");
-            } catch (err) {
-                // 回退方案：如果浏览器不支持自动写入，则弹出对话框
-                const data = localStorage.getItem('tem8_mastered_ids');
-                prompt("自动复制失败，请手动复制以下代码：", btoa(data));
-            }
-        }
-
-        async function importProgress() {
-            try {
-                const code = await navigator.clipboard.readText();
-                if (code) {
-                    const decoded = decodeURIComponent(escape(atob(code)));
-                    localStorage.setItem('tem8_mastered_ids', decoded);
-                    alert("✅ 导入成功！正在同步进度...");
-                    location.reload();
-                }
-            } catch (err) {
-                // 回退方案：如果浏览器阻止了自动读取，则弹出输入框
-                const code = prompt("无法自动读取剪切板，请在此粘贴进度代码：");
-                if (code) {
-                    localStorage.setItem('tem8_mastered_ids', atob(code));
-                    location.reload();
-                }
-            }
-        }
-
-        init();
+        loadVocab();
     </script>
 </body>
 </html>
