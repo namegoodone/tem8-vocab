@@ -7,29 +7,34 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: system-ui, sans-serif; background-color: #f1f5f9; }
-        .sidebar { transition: transform 0.3s ease; z-index: 50; }
+        /* 侧边栏样式 */
+        .sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 50; width: 320px; }
         @media (max-width: 1024px) {
             .sidebar { position: fixed; height: 100vh; transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
         }
-        .main-content { height: 100vh; overflow-y: auto; scroll-behavior: smooth; }
-        .review-mode .blur-content { filter: blur(18px); transition: filter 0.3s; cursor: pointer; }
+        .main-content { height: 100vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        /* 模糊效果 */
+        .review-mode .blur-content { filter: blur(20px); transition: filter 0.3s; cursor: pointer; }
         .review-mode .blur-content.active { filter: blur(0); }
-        .card-anim { animation: slideIn 0.4s ease-out; }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .chapter-card.active { border-color: #3b82f6; background-color: #eff6ff; }
+        /* 选中状态 */
+        .chapter-card.active { border-color: #3b82f6; background-color: #eff6ff; ring: 2px; ring-color: #3b82f6; }
+        .no-data { py: 40px; text-align: center; color: #94a3b8; font-style: italic; }
     </style>
 </head>
 <body class="flex overflow-hidden">
 
-    <div id="overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden"></div>
+    <div id="overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/60 z-40 hidden lg:hidden"></div>
 
-    <aside id="sidebar" class="sidebar w-80 bg-white border-r border-slate-200 flex flex-col shrink-0">
-        <div class="p-6 border-b">
-            <h2 class="text-xl font-black text-slate-800">学习管理</h2>
-            <div class="grid grid-cols-2 gap-2 mt-4">
-                <button onclick="syncCopy()" class="bg-blue-600 text-white py-2 rounded-xl text-[10px] font-bold">复制同步码</button>
-                <button onclick="syncPaste()" class="bg-slate-800 text-white py-2 rounded-xl text-[10px] font-bold">粘贴同步码</button>
+    <aside id="sidebar" class="sidebar bg-white border-r border-slate-200 flex flex-col shrink-0 shadow-xl lg:shadow-none">
+        <div class="p-6 border-b bg-slate-50">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-black text-slate-800">学习目录</h2>
+                <button onclick="location.reload()" class="text-xs bg-slate-200 px-2 py-1 rounded">刷新</button>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="syncCopy()" class="bg-blue-600 text-white py-2 rounded-xl text-[10px] font-bold">同步码导出</button>
+                <button onclick="syncPaste()" class="bg-slate-800 text-white py-2 rounded-xl text-[10px] font-bold">同步码导入</button>
             </div>
         </div>
         <div id="chapterStats" class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50">
@@ -38,21 +43,25 @@
 
     <main class="main-content flex-1 flex flex-col min-w-0" id="scrollContainer">
         <header class="bg-white border-b p-4 flex items-center justify-between sticky top-0 z-30 lg:hidden">
-            <button onclick="toggleSidebar()" class="p-2 bg-slate-100 rounded-lg">菜单</button>
-            <h1 class="font-bold truncate px-4" id="mobileHeaderTitle">请选择章节</h1>
-            <div class="w-10"></div>
+            <button onclick="toggleSidebar()" class="p-2 bg-blue-600 text-white rounded-lg text-xs font-bold shadow-lg">选择章节</button>
+            <h1 class="font-black text-slate-700 truncate px-4" id="mobileHeaderTitle">加载数据中...</h1>
         </header>
 
         <div class="p-4 lg:p-10 max-w-4xl mx-auto w-full">
-            <div class="flex justify-between items-center mb-8">
-                <h2 id="currentTitle" class="text-2xl font-black text-slate-800 hidden lg:block">请选择章节</h2>
-                <div class="flex bg-white p-1 rounded-xl shadow-sm border ml-auto">
-                    <button onclick="setMode('normal')" id="nBtn" class="px-6 py-2 rounded-lg text-sm font-bold bg-blue-600 text-white transition-all">浏览</button>
-                    <button onclick="setMode('review')" id="rBtn" class="px-6 py-2 rounded-lg text-sm font-bold text-slate-400 transition-all">复习</button>
+            <div class="hidden lg:flex justify-between items-center mb-8">
+                <h2 id="currentTitle" class="text-3xl font-black text-slate-800">请从左侧选择章节</h2>
+                <div class="flex bg-white p-1 rounded-2xl shadow-sm border">
+                    <button onclick="setMode('normal')" id="nBtn" class="px-8 py-2 rounded-xl text-sm font-bold bg-blue-600 text-white">浏览</button>
+                    <button onclick="setMode('review')" id="rBtn" class="px-8 py-2 rounded-xl text-sm font-bold text-slate-400">复习</button>
                 </div>
             </div>
 
-            <div id="vocabList" class="space-y-6 pb-32">
+            <div class="lg:hidden flex bg-white p-1 rounded-xl shadow-sm border mb-6">
+                <button onclick="setMode('normal')" id="mnBtn" class="flex-1 py-2 rounded-lg text-sm font-bold bg-blue-600 text-white">浏览</button>
+                <button onclick="setMode('review')" id="mrBtn" class="flex-1 py-2 rounded-lg text-sm font-bold text-slate-400">复习</button>
+            </div>
+
+            <div id="vocabList" class="space-y-8 pb-32">
                 </div>
         </div>
     </main>
@@ -65,18 +74,40 @@
         let viewType = "todo"; // 'todo' 或 'mastered'
 
         async function init() {
-            const saved = localStorage.getItem('vocab_sync_v4');
+            // 1. 读取进度
+            const saved = localStorage.getItem('vocab_sync_v5');
             if (saved) {
-                const p = JSON.parse(saved);
-                masteredWords = new Set(p.mastered || []);
-                currentChapter = p.lastChapter;
+                try {
+                    const p = JSON.parse(saved);
+                    masteredWords = new Set(p.mastered || []);
+                    currentChapter = p.lastChapter || "";
+                    viewType = p.lastViewType || "todo";
+                } catch(e) {}
             }
+
+            // 2. 加载 JSON 数据
             try {
                 const res = await fetch('vocab.json');
+                if (!res.ok) throw new Error();
                 allData = await res.json();
+                
                 renderStats();
-                if (currentChapter) loadChapter(currentChapter, viewType);
-            } catch (e) { console.error("Data load error"); }
+                
+                // 3. 自动载入默认章节
+                const chapters = [...new Set(allData.map(d => d.chapter))];
+                if (!currentChapter && chapters.length > 0) currentChapter = chapters[0];
+                
+                if (currentChapter) {
+                    loadChapter(currentChapter, viewType);
+                } else {
+                    document.getElementById('vocabList').innerHTML = `<div class="no-data">数据格式有误，未找到 Chapter 字段</div>`;
+                }
+            } catch (e) {
+                document.getElementById('vocabList').innerHTML = `<div class="no-data py-20 bg-white rounded-3xl border-2 border-dashed mx-4">
+                    <p class="text-slate-500 mb-4">⚠️ 无法加载 vocab.json</p>
+                    <p class="text-xs text-slate-400 px-10">请确保文件与 HTML 在同一文件夹，并使用 PyCharm 预览或 Web 服务器打开。</p>
+                </div>`;
+            }
         }
 
         function toggleSidebar() {
@@ -95,13 +126,13 @@
                 const isActive = ch === currentChapter;
 
                 return `
-                <div class="chapter-card p-4 rounded-2xl border-2 transition-all bg-white ${isActive ? 'active shadow-md border-blue-500' : 'border-transparent'}">
-                    <div class="font-bold text-slate-800 mb-3">${ch}</div>
+                <div class="chapter-card p-4 rounded-2xl border-2 transition-all bg-white ${isActive ? 'active border-blue-500 shadow-md' : 'border-transparent'}">
+                    <div class="font-black text-slate-700 mb-3">${ch}</div>
                     <div class="grid grid-cols-2 gap-2">
-                        <button onclick="loadChapter('${ch}', 'todo')" class="py-2 rounded-lg text-[10px] font-black ${viewType==='todo' && isActive ? 'bg-blue-500 text-white' : 'bg-blue-50 text-blue-600'}">
+                        <button onclick="loadChapter('${ch}', 'todo')" class="py-3 rounded-xl text-[10px] font-black transition-all ${viewType==='todo' && isActive ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'}">
                             待学习 ${tCount}
                         </button>
-                        <button onclick="loadChapter('${ch}', 'mastered')" class="py-2 rounded-lg text-[10px] font-black ${viewType==='mastered' && isActive ? 'bg-emerald-500 text-white' : 'bg-emerald-50 text-emerald-600'}">
+                        <button onclick="loadChapter('${ch}', 'mastered')" class="py-3 rounded-xl text-[10px] font-black transition-all ${viewType==='mastered' && isActive ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500'}">
                             已掌握 ${mCount}
                         </button>
                     </div>
@@ -109,14 +140,15 @@
             }).join('');
         }
 
-        function loadChapter(ch, type = 'todo') {
+        function loadChapter(ch, type) {
             currentChapter = ch;
             viewType = type;
             saveProgress();
             renderStats();
             
-            document.getElementById('currentTitle').innerText = `${ch} (${type === 'todo' ? '待学习' : '已掌握'})`;
-            document.getElementById('mobileHeaderTitle').innerText = ch;
+            const titleStr = `${ch} · ${type === 'todo' ? '待学习' : '已掌握'}`;
+            document.getElementById('currentTitle').innerText = titleStr;
+            document.getElementById('mobileHeaderTitle').innerText = titleStr;
             
             const list = allData.filter(d => {
                 const isM = masteredWords.has(d.word);
@@ -125,7 +157,7 @@
             
             renderList(list);
             document.getElementById('scrollContainer').scrollTop = 0;
-            // 手机端选完后自动收起
+
             if (window.innerWidth < 1024) {
                 document.getElementById('sidebar').classList.remove('open');
                 document.getElementById('overlay').classList.add('hidden');
@@ -135,66 +167,75 @@
         function renderList(data) {
             const container = document.getElementById('vocabList');
             if (data.length === 0) {
-                container.innerHTML = `<div class="py-20 text-center text-slate-400 font-bold italic">这里空空如也~</div>`;
+                container.innerHTML = `<div class="py-20 text-center text-slate-400 font-bold bg-white rounded-3xl border border-slate-200">🎉 该列表已清空！</div>`;
                 return;
             }
 
-            // 核心修复：渲染时彻底清空并重新构建，防止旧状态残留
-            container.innerHTML = ""; 
-            data.forEach(item => {
-                const isActuallyMastered = masteredWords.has(item.word);
-                const card = document.createElement('div');
-                card.className = "bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-white card-anim";
-                card.innerHTML = `
+            container.innerHTML = data.map(item => {
+                const isM = masteredWords.has(item.word);
+                return `
+                <div class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/40 border-2 border-white overflow-hidden">
                     <div class="p-8">
-                        <div class="flex justify-between items-start mb-6">
+                        <div class="flex justify-between items-start mb-8">
                             <div class="flex-1">
-                                <h3 class="text-4xl font-black text-slate-900">${item.word}</h3>
-                                <div class="text-blue-600 font-mono text-xl mt-1 font-bold">${item.phonetic || ''}</div>
+                                <h3 class="text-4xl font-black text-slate-900 tracking-tighter">${item.word}</h3>
+                                <div class="text-blue-600 font-mono text-xl mt-2 font-bold">${item.phonetic || ''}</div>
                             </div>
-                            <button onclick="toggleWordMastery('${item.word}')" class="flex flex-col items-center gap-1 shrink-0 ml-4">
-                                <div class="w-14 h-14 rounded-2xl border-4 flex items-center justify-center transition-all ${isActuallyMastered ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-100 text-slate-100'}">
+                            <button onclick="toggleWord('${item.word}')" class="shrink-0 ml-4 group">
+                                <div class="w-16 h-16 rounded-3xl border-4 flex items-center justify-center transition-all ${isM ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-200' : 'border-slate-100 bg-slate-50 text-slate-200'}">
                                     <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>
                                 </div>
-                                <span class="text-[10px] font-black ${isActuallyMastered ? 'text-emerald-500' : 'text-slate-300'} uppercase">${isActuallyMastered ? '已会' : '掌握'}</span>
+                                <p class="text-[10px] font-black mt-1 text-center ${isM ? 'text-emerald-500' : 'text-slate-300'}">${isM ? '已会' : '掌握'}</p>
                             </button>
                         </div>
                         <div class="blur-content space-y-6" onclick="this.classList.toggle('active')">
-                            <div class="bg-slate-900 text-white p-6 rounded-2xl">
-                                <p class="text-[10px] text-slate-400 uppercase font-black mb-1">中文解释</p>
+                            <div class="bg-slate-900 text-white p-6 rounded-3xl shadow-lg">
+                                <p class="text-[10px] text-slate-500 font-black mb-2 uppercase tracking-widest">中文解释</p>
                                 <p class="text-3xl font-black leading-tight">${item.meaning_cn || ''}</p>
                             </div>
-                            <p class="text-xl font-medium text-slate-600 leading-relaxed">${item.definition_en || ''}</p>
-                            <div class="bg-blue-50 p-6 rounded-[1.5rem] border-l-[12px] border-blue-400">
-                                <p class="text-xl italic text-slate-800 leading-relaxed">"${item.sentence_en || ''}"</p>
-                                <p class="text-lg text-blue-500 font-bold mt-4 text-right">— ${item.sentence_cn || ''}</p>
+                            
+                            <p class="text-xl font-bold text-slate-600 leading-relaxed px-2">${item.definition_en || ''}</p>
+                            
+                            <div class="bg-blue-50 p-6 rounded-[2rem] border-l-[12px] border-blue-400">
+                                <p class="text-xl italic text-slate-800 leading-relaxed font-serif">"${item.sentence_en || ''}"</p>
+                                <p class="text-lg text-blue-600 font-black mt-4 text-right">— ${item.sentence_cn || ''}</p>
                             </div>
                         </div>
-                    </div>`;
-                container.appendChild(card);
-            });
+                    </div>
+                </div>`;
+            }).join('');
         }
 
-        function toggleWordMastery(word) {
+        function toggleWord(word) {
             if (masteredWords.has(word)) masteredWords.delete(word);
             else masteredWords.add(word);
-            
             saveProgress();
-            // 重新载入当前视图，实现即时消失或移动
+            // 直接重新加载当前视图
             loadChapter(currentChapter, viewType);
         }
 
         function saveProgress() {
-            localStorage.setItem('vocab_sync_v4', JSON.stringify({
+            localStorage.setItem('vocab_sync_v5', JSON.stringify({
                 mastered: [...masteredWords],
-                lastChapter: currentChapter
+                lastChapter: currentChapter,
+                lastViewType: viewType
             }));
+        }
+
+        function setMode(m) {
+            isReviewMode = (m === 'review');
+            document.getElementById('vocabList').classList.toggle('review-mode', isReviewMode);
+            const styleActive = "flex-1 py-2 rounded-lg text-sm font-bold bg-blue-600 text-white";
+            const styleInactive = "flex-1 py-2 rounded-lg text-sm font-bold text-slate-400";
+            document.getElementById('nBtn').className = m==='normal' ? styleActive : styleInactive;
+            document.getElementById('rBtn').className = m==='review' ? styleActive : styleInactive;
+            document.getElementById('mnBtn').className = m==='normal' ? styleActive : styleInactive;
+            document.getElementById('mrBtn').className = m==='review' ? styleActive : styleInactive;
         }
 
         function syncCopy() {
             const code = btoa(unescape(encodeURIComponent(JSON.stringify({
-                mastered: [...masteredWords],
-                lastChapter: currentChapter
+                mastered: [...masteredWords], lastChapter: currentChapter, lastViewType: viewType
             }))));
             navigator.clipboard.writeText(code).then(() => alert("同步码已复制！"));
         }
@@ -206,17 +247,11 @@
                     const p = JSON.parse(decodeURIComponent(escape(atob(code))));
                     masteredWords = new Set(p.mastered);
                     currentChapter = p.lastChapter;
+                    viewType = p.lastViewType || "todo";
                     saveProgress();
                     location.reload();
                 } catch(e) { alert("码无效"); }
             }
-        }
-
-        function setMode(m) {
-            isReviewMode = (m === 'review');
-            document.getElementById('vocabList').classList.toggle('review-mode', isReviewMode);
-            document.getElementById('nBtn').className = m==='normal' ? 'px-6 py-2 rounded-lg text-sm font-bold bg-blue-600 text-white' : 'px-6 py-2 rounded-lg text-sm font-bold text-slate-400';
-            document.getElementById('rBtn').className = m==='review' ? 'px-6 py-2 rounded-lg text-sm font-bold bg-blue-600 text-white' : 'px-6 py-2 rounded-lg text-sm font-bold text-slate-400';
         }
 
         init();
