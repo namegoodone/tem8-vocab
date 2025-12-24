@@ -3,80 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>专八词汇·大字消灭版</title>
+    <title>专八词汇·沉浸消灭版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root {
-            --safe-top: env(safe-area-inset-top, 0px);
-            --header-h: 80px; /* 增加抬头高度 */
-        }
+        :root { --safe-top: env(safe-area-inset-top, 0px); --header-h: 80px; }
+        body { height: 100svh; background-color: #f1f5f9; margin: 0; padding-top: var(--safe-top); overflow: hidden; display: flex; }
         
-        body { 
-            height: 100svh; 
-            background-color: #f1f5f9; 
-            margin: 0; 
-            padding-top: var(--safe-top);
-            overflow: hidden;
-            display: flex;
-        }
-
-        /* 强化版抬头：字更大，更厚实 */
+        /* 强化版抬头 */
         .safari-header {
-            position: fixed;
-            top: var(--safe-top);
-            left: 0;
-            right: 0;
-            height: var(--header-h);
-            background: #ffffff;
-            border-bottom: 2px solid #e2e8f0;
-            z-index: 2000;
-            display: flex;
-            align-items: center;
-            padding: 0 1.25rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            position: fixed; top: var(--safe-top); left: 0; right: 0; height: var(--header-h);
+            background: #ffffff; border-bottom: 2px solid #e2e8f0; z-index: 2000;
+            display: flex; align-items: center; padding: 0 1.25rem; box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
 
         .main-scroll-area { 
-            flex: 1;
-            height: 100svh;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            padding-top: calc(var(--header-h) + 20px); 
-            box-sizing: border-box;
+            flex: 1; height: 100svh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+            padding-top: calc(var(--header-h) + 20px); box-sizing: border-box;
         }
 
-        /* 侧边栏 */
         .sidebar { 
-            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
-            z-index: 3000; 
-            width: 320px;
-            background: white;
-            position: fixed;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            transform: translateX(-100%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 3000; 
+            width: 320px; background: white; position: fixed; top: 0; bottom: 0; left: 0; transform: translateX(-100%);
         }
         .sidebar.open { transform: translateX(0); }
         
         @media (min-width: 1024px) {
             .sidebar { position: static; transform: translateX(0); }
-            .safari-header { display: none; }
-            .main-scroll-area { padding-top: 2rem !important; }
+            .safari-header { position: fixed; display: flex; left: 320px; } /* PC端也要抬头 */
+            .main-scroll-area { padding-top: calc(var(--header-h) + 40px); }
         }
 
-        /* 勾选动画 */
-        .card-mastered-anim { animation: masteredOut 0.5s forwards; pointer-events: none; }
-        @keyframes masteredOut {
-            0% { transform: scale(1); opacity: 1; }
-            100% { transform: translateX(100%); opacity: 0; }
+        /* 掌握动画：向右飞出并缩小高度 */
+        .card-exit-active { 
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateX(100%) rotate(5deg);
+            opacity: 0;
+            margin-top: -150px; /* 尝试让下方元素平滑上移 */
+            pointer-events: none;
         }
 
-        /* 模糊效果 */
-        .review-mode .blur-content { filter: blur(28px); transition: filter 0.3s; }
-        .review-mode .blur-content.active { filter: blur(0); }
+        .blur-content { filter: blur(28px); transition: filter 0.3s; }
+        .blur-content.active { filter: blur(0); }
 
-        /* 强制覆盖字号：确保在不同浏览器表现一致 */
         .huge-meaning { font-size: 32px !important; }
         .huge-sentence-en { font-size: 26px !important; line-height: 1.4 !important; font-weight: 800 !important; }
         .huge-sentence-cn { font-size: 20px !important; color: #475569 !important; font-weight: 600 !important; }
@@ -100,33 +68,18 @@
         <div id="chapterStats" class="flex-1 overflow-y-auto p-4 space-y-5 bg-slate-50 pb-20"></div>
     </aside>
 
-    <header class="safari-header lg:hidden">
-        <button onclick="toggleSidebar()" class="bg-blue-600 text-white px-5 py-2.5 rounded-2xl text-base font-black shadow-lg">
-            章节菜单
-        </button>
-        <div id="mobileHeaderTitle" class="text-slate-900 font-black text-lg px-2 truncate">
-            正在载入...
+    <header class="safari-header">
+        <button onclick="toggleSidebar()" class="lg:hidden bg-blue-600 text-white px-5 py-2.5 rounded-2xl text-base font-black shadow-lg">章节</button>
+        <div id="headerTitle" class="text-slate-900 font-black text-xl lg:text-2xl px-4 truncate">请选择章节</div>
+        <div class="flex bg-slate-100 p-1 rounded-xl border ml-auto scale-90 lg:scale-100">
+            <button onclick="setMode('normal')" id="mnBtn" class="px-4 lg:px-6 py-2 rounded-lg text-sm font-black bg-blue-600 text-white">浏览</button>
+            <button onclick="setMode('review')" id="mrBtn" class="px-4 lg:px-6 py-2 rounded-lg text-sm font-black text-slate-400">测试</button>
         </div>
-        <div class="w-10"></div> </header>
+    </header>
 
     <main class="main-scroll-area" id="scrollContainer">
         <div class="p-4 lg:p-12 max-w-4xl mx-auto w-full">
-            
-            <div class="lg:hidden flex bg-white p-1.5 rounded-[2rem] border-2 mb-10 shadow-sm">
-                <button onclick="setMode('normal')" id="mnBtn" class="flex-1 py-3 rounded-[1.5rem] text-sm font-black bg-blue-600 text-white">浏览单词</button>
-                <button onclick="setMode('review')" id="mrBtn" class="flex-1 py-3 rounded-[1.5rem] text-sm font-black text-slate-400">自我测试</button>
-            </div>
-
-            <div class="hidden lg:flex justify-between items-center mb-10">
-                <h2 id="currentTitle" class="text-4xl font-black text-slate-900 tracking-tighter">请选择章节</h2>
-                <div class="flex bg-white p-1 rounded-2xl border shadow-sm">
-                    <button onclick="setMode('normal')" id="nBtn" class="px-10 py-3 text-base font-black bg-blue-600 text-white rounded-xl transition-all">浏览模式</button>
-                    <button onclick="setMode('review')" id="rBtn" class="px-10 py-3 text-base font-black text-slate-400 rounded-xl transition-all">复习模式</button>
-                </div>
-            </div>
-
-            <div id="vocabList" class="space-y-12 pb-40">
-                </div>
+            <div id="vocabList" class="space-y-12 pb-60"></div>
         </div>
     </main>
 
@@ -138,7 +91,7 @@
         let viewType = "todo"; 
 
         async function init() {
-            const saved = localStorage.getItem('vocab_sync_v8');
+            const saved = localStorage.getItem('vocab_sync_v9');
             if (saved) {
                 const p = JSON.parse(saved);
                 masteredWords = new Set(p.mastered || []);
@@ -151,9 +104,9 @@
                 const chapters = [...new Set(allData.map(d => d.chapter))];
                 if (!currentChapter) currentChapter = chapters[0];
                 renderStats();
-                loadChapter(currentChapter, viewType);
+                loadChapter(currentChapter, viewType, true); // 初始加载需要重绘全量
                 updateTotal();
-            } catch (e) { console.error("Data error"); }
+            } catch (e) { console.error(e); }
         }
 
         function toggleSidebar() {
@@ -172,11 +125,11 @@
                 <div class="p-5 rounded-[2rem] border-2 bg-white ${active ? 'border-blue-500 shadow-xl' : 'border-transparent shadow-sm'}">
                     <div class="font-black text-xl text-slate-800 mb-4 ml-1">${ch}</div>
                     <div class="grid grid-cols-2 gap-3">
-                        <button onclick="loadChapter('${ch}', 'todo')" class="py-4 rounded-2xl flex flex-col items-center ${viewType==='todo'&&active ? 'bg-blue-600 text-white shadow-md' : 'bg-blue-50 text-blue-600'}">
+                        <button onclick="loadChapter('${ch}', 'todo', true)" class="py-4 rounded-2xl flex flex-col items-center ${viewType==='todo'&&active ? 'bg-blue-600 text-white shadow-md' : 'bg-blue-50 text-blue-600'}">
                             <span class="text-2xl font-black">${t}</span>
                             <span class="text-[11px] font-bold uppercase">待学</span>
                         </button>
-                        <button onclick="loadChapter('${ch}', 'mastered')" class="py-4 rounded-2xl flex flex-col items-center ${viewType==='mastered'&&active ? 'bg-emerald-600 text-white shadow-md' : 'bg-emerald-50 text-emerald-600'}">
+                        <button onclick="loadChapter('${ch}', 'mastered', true)" class="py-4 rounded-2xl flex flex-col items-center ${viewType==='mastered'&&active ? 'bg-emerald-600 text-white shadow-md' : 'bg-emerald-50 text-emerald-600'}">
                             <span class="text-2xl font-black">${m}</span>
                             <span class="text-[11px] font-bold uppercase">已掌握</span>
                         </button>
@@ -185,13 +138,19 @@
             }).join('');
         }
 
-        function loadChapter(ch, type) {
+        function loadChapter(ch, type, fullRender = false) {
             currentChapter = ch; viewType = type;
-            renderStats(); updateTotal();
-            document.getElementById('mobileHeaderTitle').innerText = ch;
-            const list = allData.filter(d => d.chapter === ch && (type === 'todo' ? !masteredWords.has(d.word) : masteredWords.has(d.word)));
-            renderList(list);
-            document.getElementById('scrollContainer').scrollTop = 0;
+            save(); renderStats(); updateTotal();
+            
+            const titleStr = `${ch} · ${type === 'todo' ? '待学习' : '已掌握'}`;
+            document.getElementById('headerTitle').innerText = titleStr;
+
+            if (fullRender) {
+                const list = allData.filter(d => d.chapter === ch && (type === 'todo' ? !masteredWords.has(d.word) : masteredWords.has(d.word)));
+                renderList(list);
+                document.getElementById('scrollContainer').scrollTop = 0;
+            }
+
             if (window.innerWidth < 1024 && document.getElementById('sidebar').classList.contains('open')) toggleSidebar();
         }
 
@@ -201,16 +160,14 @@
                 container.innerHTML = `<div class="py-32 text-center font-black text-slate-300 text-2xl">该类目已清空 🎉</div>`;
                 return;
             }
-            container.innerHTML = data.map(item => {
-                const isM = masteredWords.has(item.word);
-                return `
-                <div id="card-${item.word}" class="bg-white rounded-[3.5rem] shadow-2xl border-2 border-white p-10">
+            container.innerHTML = data.map(item => `
+                <div id="card-${item.word}" class="bg-white rounded-[3.5rem] shadow-2xl border-2 border-white p-10 transition-all duration-500 overflow-hidden">
                     <div class="flex justify-between items-start mb-10">
                         <div class="flex-1">
                             <h3 class="text-5xl font-black text-slate-900 tracking-tighter">${item.word}</h3>
                             <div class="text-blue-600 text-2xl mt-3 font-bold">${item.phonetic || ''}</div>
                         </div>
-                        <button onclick="handleMastery('${item.word}')" class="w-24 h-24 rounded-[2rem] border-[6px] flex items-center justify-center transition-all ${isM ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-slate-50 border-slate-100 text-slate-200'}">
+                        <button onclick="handleMastery('${item.word}')" class="w-24 h-24 rounded-[2rem] border-[6px] flex items-center justify-center transition-all ${viewType==='mastered'?'bg-emerald-500 border-emerald-500 text-white':'bg-slate-50 border-slate-100 text-slate-200'}">
                             <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>
                         </button>
                     </div>
@@ -218,27 +175,37 @@
                         <div class="bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-xl">
                             <p class="huge-meaning font-black leading-tight">${item.meaning_cn || ''}</p>
                         </div>
-                        
                         <p class="text-2xl font-bold text-slate-600 px-2 leading-relaxed">${item.definition_en || ''}</p>
-                        
                         <div class="bg-blue-50/70 p-8 rounded-[3rem] border-l-[18px] border-blue-400">
                             <p class="huge-sentence-en font-serif mb-6">"${item.sentence_en || ''}"</p>
-                            <div class="huge-sentence-cn border-t border-blue-100 pt-6">
-                                ${item.sentence_cn || ''}
-                            </div>
+                            <div class="huge-sentence-cn border-t border-blue-100 pt-6">${item.sentence_cn || ''}</div>
                         </div>
                     </div>
-                </div>`;
-            }).join('');
+                </div>`).join('');
         }
 
         function handleMastery(word) {
             const card = document.getElementById(`card-${word}`);
             if (viewType === 'todo') {
-                card.classList.add('card-mastered-anim');
-                setTimeout(() => { masteredWords.add(word); save(); loadChapter(currentChapter, viewType); }, 500);
+                // 局部删除逻辑
+                card.classList.add('card-exit-active');
+                masteredWords.add(word);
+                save();
+                updateTotal();
+                renderStats(); // 刷新侧边栏数字
+                
+                // 动画完成后从 DOM 中彻底移除，但不触发 loadChapter
+                setTimeout(() => {
+                    card.remove();
+                    if (document.querySelectorAll('#vocabList > div').length === 0) {
+                        loadChapter(currentChapter, viewType, true); // 只有全空了才刷新
+                    }
+                }, 500);
             } else {
-                masteredWords.delete(word); save(); loadChapter(currentChapter, viewType);
+                // 已掌握列表移回
+                masteredWords.delete(word);
+                save();
+                loadChapter(currentChapter, viewType, true);
             }
         }
 
@@ -248,7 +215,7 @@
                 if (text && text.length > 20) apply(text);
                 else throw new Error();
             } catch (err) {
-                const code = prompt("请在此处长按粘贴同步码：");
+                const code = prompt("粘贴同步码：");
                 if (code) apply(code);
             }
         }
@@ -258,30 +225,29 @@
                 const p = JSON.parse(decodeURIComponent(escape(atob(code))));
                 masteredWords = new Set(p.mastered); currentChapter = p.lastChapter; viewType = p.lastViewType;
                 save(); location.reload();
-            } catch(e) { alert("同步码解析失败"); }
+            } catch(e) { alert("码无效"); }
         }
 
         function save() {
-            localStorage.setItem('vocab_sync_v8', JSON.stringify({ mastered: [...masteredWords], lastChapter: currentChapter, lastViewType: viewType }));
+            localStorage.setItem('vocab_sync_v9', JSON.stringify({ mastered: [...masteredWords], lastChapter: currentChapter, lastViewType: viewType }));
         }
 
         function updateTotal() {
-            const percent = (masteredWords.size / (allData.length || 1) * 100).toFixed(1);
-            document.getElementById('totalBar').style.width = percent + '%';
+            document.getElementById('totalBar').style.width = (masteredWords.size / (allData.length || 1) * 100).toFixed(1) + '%';
         }
 
         function setMode(m) {
             isReviewMode = (m === 'review');
             document.getElementById('vocabList').classList.toggle('review-mode', isReviewMode);
-            const activeS = "flex-1 py-3 rounded-[1.5rem] text-sm font-black bg-blue-600 text-white shadow-md";
-            const inactiveS = "flex-1 py-3 rounded-[1.5rem] text-sm font-black text-slate-400";
+            const activeS = "px-6 py-2 rounded-lg text-sm font-black bg-blue-600 text-white transition-all";
+            const inactiveS = "px-6 py-2 rounded-lg text-sm font-black text-slate-400 transition-all";
             document.getElementById('mnBtn').className = m === 'normal' ? activeS : inactiveS;
             document.getElementById('mrBtn').className = m === 'review' ? activeS : inactiveS;
         }
 
         function syncCopy() {
             const data = btoa(unescape(encodeURIComponent(JSON.stringify({ mastered: [...masteredWords], lastChapter: currentChapter, lastViewType: viewType }))));
-            navigator.clipboard.writeText(data).then(() => alert("同步码已存入剪切板"));
+            navigator.clipboard.writeText(data).then(() => alert("已复制"));
         }
 
         init();
